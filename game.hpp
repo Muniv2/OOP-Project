@@ -1,8 +1,18 @@
 #ifndef GAME_HPP
 #define GAME_HPP
 
-#include <SFML/Graphics.hpp>
+#include <SFML/Graphics.hpp> // Add this for video support
 #include <iostream>
+
+class Background {
+public:
+    Background(const std::string& filename);
+    void draw(sf::RenderWindow& window);
+
+private:
+    sf::Texture texture;
+    sf::Sprite sprite;
+};
 
 class Character {
 public:
@@ -92,6 +102,7 @@ private:
     sf::RenderWindow window;
     sf::Clock clock;
 
+    Background background;  // Simple background
     Player player;
     Platform platform1;
     Platform platform2;

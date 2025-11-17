@@ -198,16 +198,33 @@ sf::FloatRect Platform::getBounds() const
 }
 
 // =========================
+//   BACKGROUND IMPLEMENTATION
+// =========================
+Background::Background(const std::string& filename)
+{
+    if (!texture.loadFromFile(filename)) {
+        std::cout << "Failed to load background: " << filename << std::endl;
+    }
+    sprite.setTexture(texture);
+}
+
+void Background::draw(sf::RenderWindow& window)
+{
+    window.draw(sprite);
+}
+
+// =========================
 //   GAME IMPLEMENTATION
 // =========================
 Game::Game()
-    : platform1("platform.png", -20.f, 600.f),
-    platform2("platform.png", 255.f, 600.f),
-    platform3("platform.png", 530.f, 600.f),
-    platform4("platform.png", 705.f, 600.f),
-    platform5("platform.png", 980.f, 525.f),
-    platform6("platform.png", 1255.f, 450.f),
-    platform7("platform.png", 1530.f, 375.f)
+    : background("bgimg.png"),  // Your background image
+      platform1("platform.png", -20.f, 600.f),
+      platform2("platform.png", 255.f, 600.f),
+      platform3("platform.png", 530.f, 600.f),
+      platform4("platform.png", 705.f, 600.f),
+      platform5("platform.png", 980.f, 525.f),
+      platform6("platform.png", 1255.f, 450.f),
+      platform7("platform.png", 1530.f, 375.f)
 {
     sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
     unsigned int width  = desktop.width  * 0.8f;
@@ -216,6 +233,7 @@ Game::Game()
     window.create(sf::VideoMode(width, height), "Hollow Knight Inspired Game");
     window.setFramerateLimit(60);
 }
+
 
 void Game::run()
 {
@@ -251,6 +269,7 @@ void Game::processEvents()
 
 void Game::update(float dt)
 {
+    
     sf::FloatRect platformBounds[] = {
         platform1.getBounds(),
         platform2.getBounds(),
@@ -258,14 +277,17 @@ void Game::update(float dt)
         platform4.getBounds(),
         platform5.getBounds(),
         platform6.getBounds(),
-        platform7.getBounds()  // Don't forget this one!
+        platform7.getBounds()
     };
     player.update(dt, platformBounds);
 }
 
 void Game::render()
 {
-    window.clear(sf::Color::Cyan);
+    window.clear(); // Remove the cyan color
+
+    // Draw background first
+    background.draw(window);
 
     // Draw platforms
     platform1.draw(window);
