@@ -1,6 +1,61 @@
 #include "game.hpp"
 
 // =========================
+//   UI ELEMENT IMPLEMENTATION
+// =========================
+UIElement::UIElement() {
+    // Load font (you might want to load a proper font file)
+    if (!font.loadFromFile("arial.ttf")) {
+        // If font loading fails, we'll use the default font
+        std::cout << "Note: Using default font (arial.ttf not found)" << std::endl;
+    }
+    text.setFont(font);
+    text.setCharacterSize(24);
+    text.setFillColor(sf::Color::White);
+}
+
+// =========================
+//   HEALTH BAR IMPLEMENTATION
+// =========================
+HealthBar::HealthBar(int* health, int maxHP) 
+    : playerHealth(health), maxHealth(maxHP) {
+    text.setPosition(20.f, 20.f); // Top-left corner
+}
+
+void HealthBar::draw(sf::RenderWindow& window) {
+    window.draw(text);
+}
+
+void HealthBar::update() {
+    std::string healthText = "Health: " + std::to_string(*playerHealth) + "/" + std::to_string(maxHealth);
+    text.setString(healthText);
+}
+
+void HealthBar::takeDamage(int damage) {
+    if (*playerHealth > 0) {
+        *playerHealth -= damage;
+        if (*playerHealth < 0) *playerHealth = 0;
+    }
+}
+
+// =========================
+//   SOUL BAR IMPLEMENTATION
+// =========================
+SoulBar::SoulBar(int* soul) : playerSoul(soul) {
+    text.setPosition(20.f, 50.f); // Below health bar
+}
+
+void SoulBar::draw(sf::RenderWindow& window) {
+    window.draw(text);
+}
+
+void SoulBar::update() {
+    std::string soulText = "Soul: " + std::to_string(*playerSoul);
+    text.setString(soulText);
+}
+
+
+// =========================
 //   CHARACTER IMPLEMENTATION xxxx
 // =========================
 Character::Character() 
@@ -217,14 +272,17 @@ void Background::draw(sf::RenderWindow& window)
 //   GAME IMPLEMENTATION
 // =========================
 Game::Game()
-    : background("bgimg.png"),  // Your background image
+    : background("bgimg.png"),
       platform1("platform.png", -20.f, 600.f),
       platform2("platform.png", 255.f, 600.f),
       platform3("platform.png", 530.f, 600.f),
       platform4("platform.png", 705.f, 600.f),
       platform5("platform.png", 980.f, 525.f),
       platform6("platform.png", 1255.f, 450.f),
-      platform7("platform.png", 1530.f, 375.f)
+      platform7("platform.png", 1530.f, 375.f),
+      // Initialize UI elements with pointers to player's health and soul
+      healthBar(&player.health, player.maxHealth),
+      soulBar(&player.soul)
 {
     sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
     unsigned int width  = desktop.width  * 0.8f;
@@ -234,7 +292,9 @@ Game::Game()
     window.setFramerateLimit(60);
 }
 
-
+// =========================
+//   GAME RUN FUNCTION (ADD THIS BACK)
+// =========================
 void Game::run()
 {
     sf::Clock clock;
@@ -264,12 +324,23 @@ void Game::processEvents()
     while (window.pollEvent(event)) {
         if (event.type == sf::Event::Closed)
             window.close();
+        
+        // Health damage when 'P' is pressed
+        if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::P) {
+            healthBar.takeDamage(10);
+            std::cout << "Health reduced! Current health: " << player.health << std::endl;
+        }
+        
+        // Soul increase when 'O' is pressed - using the gainSoul method
+        if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::O) {
+            player.gainSoul(1);  // Use the method instead of direct access
+            std::cout << "Soul increased! Current soul: " << player.soul << std::endl;
+        }
     }
 }
 
 void Game::update(float dt)
 {
-    
     sf::FloatRect platformBounds[] = {
         platform1.getBounds(),
         platform2.getBounds(),
@@ -280,11 +351,15 @@ void Game::update(float dt)
         platform7.getBounds()
     };
     player.update(dt, platformBounds);
+    
+    // Update UI elements
+    healthBar.update();
+    soulBar.update();
 }
 
 void Game::render()
 {
-    window.clear(); // Remove the cyan color
+    window.clear();
 
     // Draw background first
     background.draw(window);
@@ -300,6 +375,10 @@ void Game::render()
 
     // Draw player
     player.draw(window);
+
+    // Draw UI elements last (on top of everything)
+    healthBar.draw(window);
+    soulBar.draw(window);
 
     window.display();
 }

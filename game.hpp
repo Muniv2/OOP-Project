@@ -1,8 +1,52 @@
 #ifndef GAME_HPP
 #define GAME_HPP
 
-#include <SFML/Graphics.hpp> // Add this for video support
+#include <SFML/Graphics.hpp>
 #include <iostream>
+#include <string>
+
+// ========================
+// UI ELEMENT BASE CLASS
+// ========================
+class UIElement {
+protected:
+    sf::Text text;
+    sf::Font font;
+
+public:
+    UIElement();
+    virtual ~UIElement() = default;
+    virtual void draw(sf::RenderWindow& window) = 0;
+    virtual void update() = 0;
+};
+
+// ========================
+// HEALTH BAR CLASS
+// ========================
+class HealthBar : public UIElement {
+private:
+    int* playerHealth; // Pointer to player's health
+    int maxHealth;
+
+public:
+    HealthBar(int* health, int maxHP);
+    void draw(sf::RenderWindow& window) override;
+    void update() override;
+    void takeDamage(int damage);
+};
+
+// ========================
+// SOUL BAR CLASS
+// ========================
+class SoulBar : public UIElement {
+private:
+    int* playerSoul; // Pointer to player's soul
+
+public:
+    SoulBar(int* soul);
+    void draw(sf::RenderWindow& window) override;
+    void update() override;
+};
 
 class Background {
 public:
@@ -32,6 +76,10 @@ public:
     sf::Vector2f getPosition() const;
     bool isFacingRight() const;
 
+    // Make health public for UI access
+    int health;
+    int maxHealth;
+
 protected:
     // Common attributes for all characters
     sf::Texture texture;
@@ -42,8 +90,6 @@ protected:
     float gravity;
     
     // Character properties
-    int health;
-    int maxHealth;
     bool facingRight;
     
     // Collision and state
@@ -62,12 +108,14 @@ public:
     void gainSoul(int amount);
     void heal();
 
+    // Make soul public for UI access
+    int soul;
+    int maxSoul;
+
 private:
     // Player-specific attributes
     float moveSpeed;
     float jumpForce;
-    int soul;
-    int maxSoul;
     bool isAttacking;
     float attackCooldown;
 };
@@ -111,6 +159,10 @@ private:
     Platform platform5;
     Platform platform6;
     Platform platform7;
+
+    // Add UI elements
+    HealthBar healthBar;
+    SoulBar soulBar;
 
     void processEvents();
     void update(float dt);
