@@ -4,31 +4,62 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
-
 class Character {
 public:
+    Character();
     virtual ~Character() {}
 
-    // All characters must implement these:
-    virtual void update(float dt , sf::FloatRect platformBounds[]) = 0;
+    // Pure virtual functions - must be implemented by derived classes
+    virtual void update(float dt, sf::FloatRect platformBounds[]) = 0;
     virtual void draw(sf::RenderWindow& window) = 0;
+    
+    // Common functions that can be used by all characters
+    virtual void takeDamage(int damage);
+    virtual bool isDead() const;
+    
+    // Getters for collision and positioning
+    sf::FloatRect getBounds() const;
+    sf::Vector2f getPosition() const;
+    bool isFacingRight() const;
 
 protected:
+    // Common attributes for all characters
     sf::Texture texture;
     sf::Sprite sprite;
+    
+    // Physics and movement
+    float vx, vy;
+    float gravity;
+    
+    // Character properties
+    int health;
+    int maxHealth;
+    bool facingRight;
+    
+    // Collision and state
+    bool onGround;
 };
-
 
 class Player : public Character {
 public:
     Player();
-
-    void update(float dt , sf::FloatRect platformBounds[]) override;
+    void update(float dt, sf::FloatRect platformBounds[]) override;
     void draw(sf::RenderWindow& window) override;
 
+    // Player-specific functions
+    void jump();
+    void meleeAttack();
+    void gainSoul(int amount);
+    void heal();
+
 private:
-    float timer;
-    bool onGround;
+    // Player-specific attributes
+    float moveSpeed;
+    float jumpForce;
+    int soul;
+    int maxSoul;
+    bool isAttacking;
+    float attackCooldown;
 };
 
 class Platform {

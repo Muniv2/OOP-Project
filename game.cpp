@@ -1,111 +1,170 @@
 #include "game.hpp"
 
-
-Player::Player() :  onGround(true)
+// =========================
+//   CHARACTER IMPLEMENTATION
+// =========================
+Character::Character() 
+    : vx(0), vy(0), gravity(800.f), health(100), maxHealth(100), 
+      facingRight(true), onGround(false)
 {
-    sf::Image fullImage;
-    if (!fullImage.loadFromFile("player.png"))
-        std::cout << "Failed to load sprite sheet!\n";
-
-    sf::IntRect frameRect(4025, 3965, 71, 130);
-    sf::Image frameImage;
-    frameImage.create(frameRect.width, frameRect.height);
-    frameImage.copy(fullImage, 0, 0, frameRect, false);
-
-    if (!texture.loadFromImage(frameImage))
-        std::cout << "Failed to create frame texture!\n";
-
-    sprite.setTexture(texture);
-    sprite.setScale(-0.75f, 0.75f);
-    sprite.setOrigin(sprite.getLocalBounds().width, 0);
-    // sprite.setPosition(100.f, 500.f - sprite.getGlobalBounds().height);
-    sprite.setPosition(100.f, 540.f);
-
+    // Base initialization - derived classes will set up their specific sprites
 }
 
-void Player::update(float dt , sf::FloatRect platformBounds[])
-{
-    
-    // bool moveright = (pos.x <= 960.f || (pos.y <= 540.f && pos.y > 465.f));
+void Character::takeDamage(int damage) {
+    health -= damage;
+    if (health < 0) health = 0;
+}
 
-    // if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-    //     sprite.move(-speed * dt, 0);
-    //     sprite.setScale(0.75f, 0.75f);
-    //     sprite.setOrigin(0, 0);
-    // }
-    // else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) && moveright) {
-    //     sprite.move(speed * dt, 0);
-    //     sprite.setScale(-0.75f, 0.75f);
-    //     sprite.setOrigin(sprite.getLocalBounds().width, 0);
-    // }
-    // if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && onGround) {
-    //     timer = 1.f;
-    //     onGround = false;
-    // }
-    // if (sprite.getPosition().y < 540 && onGround == true) {
-    //     sprite.move(0, speed * dt * 2);
-    // } else if (sprite.getPosition().y > 540) {
-    //     onGround = true;
-    //     timer = 0.f;
-    //     sprite.setPosition(sprite.getPosition().x, 540.f);
-    // } else if (timer > 0.5 && onGround == false) {
-    //     sprite.move(0, -speed * dt * 2);
-    //     timer -= dt;
-    // } else if (timer > 0 && onGround == false) {
-    //     sprite.move(0, speed * dt * 2);
-    //     timer -= dt;
-    // } else {
-    //     timer = 0;
-    //     onGround = true;
-    // }
-    float speed = 200.f;
-    sf::Vector2f pos = sprite.getPosition();
-    
-    bool moveright = (pos.x <= 960.f || (pos.x > 960.f && pos.x <= 1235 && pos.y < 480.f )
-    || (pos.x > 1235.f && pos.y < 405.f));
-    if (pos.y >= 540.f && pos.x <= 960.f) {
-        onGround = true;
-    } else if (pos.y >= 465.f && pos.x > 960.f) {
-        onGround = true;
-    } else if (pos.y >= 465.f && pos.x <= 960.f) {
-        onGround = false;
-    } else if (pos.y >= 390.f && pos.x > 1235.f) {
-        onGround = true;
-    } else if (pos.y >= 390.f && pos.x <= 1235.f) {
-        onGround = false;
+bool Character::isDead() const {
+    return health <= 0;
+}
+
+sf::FloatRect Character::getBounds() const {
+    return sprite.getGlobalBounds();
+}
+
+sf::Vector2f Character::getPosition() const {
+    return sprite.getPosition();
+}
+
+bool Character::isFacingRight() const {
+    return facingRight;
+}
+
+Player::Player()
+    : moveSpeed(200.f), jumpForce(-400.f), soul(0), maxSoul(100),
+      isAttacking(false), attackCooldown(0.f)
+{
+    // Load and extract player sprite from sprite sheet
+    sf::Image fullImage;
+    if (fullImage.loadFromFile("player.png")) {
+        // Extract character frame from sprite sheet
+        sf::IntRect frameRect(4025, 3965, 71, 130);
+        sf::Image frameImage;
+        frameImage.create(frameRect.width, frameRect.height, sf::Color::Transparent);
+        frameImage.copy(fullImage, 0, 0, frameRect, true);
+        texture.loadFromImage(frameImage);
     }
+
+    sprite.setTexture(texture);
+    sprite.setScale(1.0f, 1.0f); // Large size
+    sprite.setPosition(100.f, 200.f);
+    facingRight = true;
+}
+
+void Player::update(float dt, sf::FloatRect platformBounds[])
+{
+    vx = 0.f;
+    float scale = 1.0f; // Match constructor scale
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-        sprite.move(-speed * dt, 0);
-        sprite.setScale(0.75f, 0.75f);
+        vx = -moveSpeed;
+        facingRight = false;
+        sprite.setScale(scale, scale);
         sprite.setOrigin(0, 0);
     }
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) && moveright) {
-        sprite.move(speed * dt, 0);
-        sprite.setScale(-0.75f, 0.75f);
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+        vx = moveSpeed;
+        facingRight = true;
+        sprite.setScale(-scale, scale);
         sprite.setOrigin(sprite.getLocalBounds().width, 0);
     }
+    
+    // ... rest of movement code remains the same
+    // Handle jumping
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && onGround) {
-        timer = 0.5f;
+        vy = jumpForce;
         onGround = false;
     }
-    if (timer > 0.f && !onGround) {
-        sprite.move(0, -speed * dt * 2);
-        timer -= dt;
-    } else {
-        timer = 0;
+    
+    // Apply gravity
+    vy += gravity * dt;
+    
+    // Store current position
+    sf::Vector2f currentPos = sprite.getPosition();
+    
+    // Calculate new position
+    sf::Vector2f newPos = currentPos + sf::Vector2f(vx * dt, vy * dt);
+    
+    // Apply horizontal movement first
+    sprite.setPosition(newPos.x, currentPos.y);
+    
+    // Check horizontal collisions
+    sf::FloatRect playerBounds = getBounds();
+    bool horizontalCollision = false;
+    for (int i = 0; i < 7; i++) {
+        if (playerBounds.intersects(platformBounds[i])) {
+            horizontalCollision = true;
+            break;
+        }
     }
-    if (!onGround && timer == 0) {
-        sprite.move(0, speed * dt * 2);
+    
+    // If horizontal collision, revert X position
+    if (horizontalCollision) {
+        sprite.setPosition(currentPos.x, currentPos.y);
+        vx = 0;
     }
-    std::cout << "Y pos:" << pos.y << " moveright:" << moveright << std::endl;
-
+    
+    // Apply vertical movement
+    sprite.setPosition(sprite.getPosition().x, newPos.y);
+    
+    // Check vertical collisions
+    playerBounds = getBounds();
+    onGround = false;
+    
+    for (int i = 0; i < 7; i++) {
+        if (playerBounds.intersects(platformBounds[i])) {
+            sf::FloatRect platform = platformBounds[i];
+            
+            // Landing on platform from above
+            if (vy > 0 && playerBounds.top + playerBounds.height > platform.top) {
+                // Position player exactly on top of platform
+                sprite.setPosition(sprite.getPosition().x, platform.top - playerBounds.height);
+                vy = 0;
+                onGround = true;
+            }
+            // Hitting platform from below
+            else if (vy < 0 && playerBounds.top < platform.top + platform.height) {
+                sprite.setPosition(sprite.getPosition().x, platform.top + platform.height);
+                vy = 0;
+            }
+            break;
+        }
+    }
 }
 
 void Player::draw(sf::RenderWindow& window)
 {
     window.draw(sprite);
 }
+
+// Player-specific functions (implement these later)
+void Player::jump() {
+    if (onGround) {
+        vy = jumpForce;
+        onGround = false;
+    }
+}
+
+void Player::meleeAttack() {
+    // Implement attack logic later
+    isAttacking = true;
+    attackCooldown = 0.3f; // 300ms cooldown
+}
+
+void Player::gainSoul(int amount) {
+    soul += amount;
+    if (soul > maxSoul) soul = maxSoul;
+}
+
+void Player::heal() {
+    if (soul >= 10) { // Cost 10 soul to heal
+        health += 20;
+        if (health > maxHealth) health = maxHealth;
+        soul -= 10;
+    }
+}
+
 
 // =========================
 //   PLATFORM IMPLEMENTATION
@@ -160,10 +219,23 @@ Game::Game()
 
 void Game::run()
 {
+    sf::Clock clock;
+    const float targetFrameTime = 1.0f / 60.0f; // 60 FPS
+    float accumulatedTime = 0.0f;
+    
     while (window.isOpen()) {
-        processEvents();
         float dt = clock.restart().asSeconds();
-        update(dt);
+        accumulatedTime += dt;
+        
+        // Process events every frame
+        processEvents();
+        
+        // Update with fixed timestep for consistent physics
+        while (accumulatedTime >= targetFrameTime) {
+            update(targetFrameTime);
+            accumulatedTime -= targetFrameTime;
+        }
+        
         render();
     }
 }
@@ -185,15 +257,17 @@ void Game::update(float dt)
         platform3.getBounds(),
         platform4.getBounds(),
         platform5.getBounds(),
-        platform6.getBounds()
+        platform6.getBounds(),
+        platform7.getBounds()  // Don't forget this one!
     };
-    player.update(dt , platformBounds);
+    player.update(dt, platformBounds);
 }
 
 void Game::render()
 {
     window.clear(sf::Color::Cyan);
 
+    // Draw platforms
     platform1.draw(window);
     platform2.draw(window);
     platform3.draw(window);
@@ -202,6 +276,7 @@ void Game::render()
     platform6.draw(window);
     platform7.draw(window);
 
+    // Draw player
     player.draw(window);
 
     window.display();
