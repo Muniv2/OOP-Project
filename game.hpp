@@ -112,12 +112,14 @@ public:
     int soul;
     int maxSoul;
 
+    bool isAttacking;
+    float attackCooldown;
+    sf::FloatRect getAttackHitbox() const;
+
 private:
     // Player-specific attributes
     float moveSpeed;
     float jumpForce;
-    bool isAttacking;
-    float attackCooldown;
 };
 
 class Platform {

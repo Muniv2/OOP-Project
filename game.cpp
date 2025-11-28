@@ -1,4 +1,5 @@
 #include "game.hpp"
+#include <iostream>
 
 // =========================
 //   UI ELEMENT IMPLEMENTATION
@@ -87,7 +88,7 @@ bool Character::isFacingRight() const {
 }
 
 Player::Player()
-    : moveSpeed(200.f), jumpForce(-400.f), soul(0), maxSoul(100),
+    : Character() , moveSpeed(200.f), jumpForce(-500.f), soul(0), maxSoul(100),
       isAttacking(false), attackCooldown(0.f)
 {
     // Load and extract player sprite from sprite sheet
@@ -102,7 +103,7 @@ Player::Player()
     }
 
     sprite.setTexture(texture);
-    sprite.setScale(1.0f, 1.0f); // Large size
+    sprite.setScale(0.75f, 0.75f); // Large size
     sprite.setPosition(100.f, 200.f);
     facingRight = true;
 }
@@ -110,7 +111,19 @@ Player::Player()
 void Player::update(float dt, sf::FloatRect platformBounds[])
 {
     vx = 0.f;
-    float scale = 1.0f; // Match constructor scale
+    float scale = 0.75f; // Match constructor scale
+
+    // Handle attack cooldown
+    if (attackCooldown > 0.f) {
+        attackCooldown -= dt;
+        if (attackCooldown < 0.f) attackCooldown = 0.f;
+    }
+
+    // End attack when cooldown is over
+    if (attackCooldown == 0.f) {
+        isAttacking = false;
+    }
+
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
         vx = -moveSpeed;
@@ -202,9 +215,14 @@ void Player::jump() {
 }
 
 void Player::meleeAttack() {
-    // Implement attack logic later
-    isAttacking = true;
-    attackCooldown = 0.3f; // 300ms cooldown
+    // // Implement attack logic later
+    // isAttacking = true;
+    // attackCooldown = 0.3f; // 300ms cooldown
+
+    if (attackCooldown == 0.f) {
+        isAttacking = true;
+        attackCooldown = 1.f; // 300ms cooldown
+    }
 }
 
 void Player::gainSoul(int amount) {
@@ -220,6 +238,19 @@ void Player::heal() {
     }
 }
 
+
+
+
+sf::FloatRect Player::getAttackHitbox() const {
+    sf::FloatRect bounds = sprite.getGlobalBounds();
+
+    float range = 50.f; // attack reach
+    if (facingRight) {
+        return sf::FloatRect(bounds.left + bounds.width, bounds.top, range, bounds.height);
+    } else {
+        return sf::FloatRect(bounds.left - range, bounds.top, range, bounds.height);
+    }
+}
 
 // =========================
 //   PLATFORM IMPLEMENTATION
@@ -273,13 +304,13 @@ void Background::draw(sf::RenderWindow& window)
 // =========================
 Game::Game()
     : background("bgimg.png"),
-      platform1("platform.png", -20.f, 600.f),
-      platform2("platform.png", 255.f, 600.f),
-      platform3("platform.png", 530.f, 600.f),
-      platform4("platform.png", 705.f, 600.f),
-      platform5("platform.png", 980.f, 525.f),
-      platform6("platform.png", 1255.f, 450.f),
-      platform7("platform.png", 1530.f, 375.f),
+      platform1("platform.png", -20.f, 700.f),
+      platform2("platform.png", 255.f, 700.f),
+      platform3("platform.png", 530.f, 700.f),
+      platform4("platform.png", 705.f, 700.f),
+      platform5("platform.png", 980.f, 625.f),
+      platform6("platform.png", 1255.f, 550.f),
+      platform7("platform.png", 1530.f, 475.f),
       // Initialize UI elements with pointers to player's health and soul
       healthBar(&player.health, player.maxHealth),
       soulBar(&player.soul)
@@ -324,6 +355,14 @@ void Game::processEvents()
     while (window.pollEvent(event)) {
         if (event.type == sf::Event::Closed)
             window.close();
+
+        if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::J) {
+            if (!player.isAttacking) {
+                player.meleeAttack();
+                std::cout << "Player attacked!" << std::endl;
+            }
+        }
+
         
         // Health damage when 'P' is pressed
         if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::P) {
@@ -380,5 +419,16 @@ void Game::render()
     healthBar.draw(window);
     soulBar.draw(window);
 
+    if (player.isAttacking && player.attackCooldown >= 0.75f) {
+        sf::FloatRect hb = player.getAttackHitbox();
+        sf::RectangleShape box;
+        box.setPosition(hb.left, hb.top);
+        box.setSize({hb.width, hb.height});
+        box.setFillColor(sf::Color(255, 0, 0, 100));
+        window.draw(box);
+    }
+
+
     window.display();
+    
 }
