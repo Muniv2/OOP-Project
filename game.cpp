@@ -60,9 +60,13 @@ void SoulBar::update() {
 // =========================
 Character::Character() 
     : vx(0), vy(0), gravity(800.f), health(100), maxHealth(100), 
-      facingRight(true), onGround(false)
+      facingRight(true), onGround(false), damageFlashTimer(0.f)
 {
     // Base initialization - derived classes will set up their specific sprites
+}
+
+void Character::resetColor() {
+    sprite.setColor(originalColor);
 }
 
 void Character::takeDamage(int damage) {
@@ -72,6 +76,24 @@ void Character::takeDamage(int damage) {
 
 bool Character::isDead() const {
     return health <= 0;
+}
+
+// Character damage flash implementation
+void Character::triggerDamageFlash()
+{
+    damageFlashTimer = 0.5f;
+    originalColor = sprite.getColor();
+    sprite.setColor(sf::Color::Red);
+}
+
+void Character::updateDamageFlash(float dt)
+{
+    if (damageFlashTimer > 0.f) {
+        damageFlashTimer -= dt;
+        if (damageFlashTimer <= 0.f) {
+            resetColor(); // Use the new method instead of direct access
+        }
+    }
 }
 
 sf::FloatRect Character::getBounds() const {
@@ -88,7 +110,7 @@ bool Character::isFacingRight() const {
 
 Player::Player()
     : moveSpeed(200.f), jumpForce(-400.f), soul(0), maxSoul(100),
-      isAttacking(false), attackCooldown(0.f)
+      isAttackOnCooldown(false), attackCooldownTimer(0.f)
 {
     // Load and extract player sprite from sprite sheet
     sf::Image fullImage;
@@ -105,10 +127,47 @@ Player::Player()
     sprite.setScale(1.0f, 1.0f); // Large size
     sprite.setPosition(100.f, 200.f);
     facingRight = true;
+    // Set attack damage for the player's melee attack
+    currentAttack.setDamage(30);
+    attackCooldownTimer = 0.f;
 }
+
+void Player::attack()
+{
+    // Only attack if not on cooldown
+    if (!isAttackOnCooldown) {
+        currentAttack.activate(getPosition(), facingRight);
+        isAttackOnCooldown = true;  // Set the flag
+        attackCooldownTimer = 2.0f; // 2 second cooldown
+        std::cout << "Attack started! Cooldown: 2.0s" << std::endl;
+    }
+}
+
+
 
 void Player::update(float dt, sf::FloatRect platformBounds[])
 {
+    // Update attack cooldown
+    if (isAttackOnCooldown) {
+        attackCooldownTimer -= dt;
+        if (attackCooldownTimer <= 0.f) {
+            isAttackOnCooldown = false;  // Reset the flag
+            attackCooldownTimer = 0.f;
+            std::cout << "Attack cooldown finished - ready to attack!" << std::endl;
+        }
+    }
+
+    
+    // Update damage flash
+    updateDamageFlash(dt);
+    
+    // Update current attack position to follow player
+    if (currentAttack.isActive()) {
+        float offsetX = facingRight ? 20.f : -20.f;
+        float offsetY = -5.f;
+        currentAttack.sprite.setPosition(getPosition().x + offsetX, getPosition().y + offsetY);
+    }
+
     vx = 0.f;
     float scale = 1.0f; // Match constructor scale
 
@@ -188,9 +247,11 @@ void Player::update(float dt, sf::FloatRect platformBounds[])
     }
 }
 
+
 void Player::draw(sf::RenderWindow& window)
 {
     window.draw(sprite);
+    currentAttack.draw(window);
 }
 
 // Player-specific functions (implement these later)
@@ -201,11 +262,11 @@ void Player::jump() {
     }
 }
 
-void Player::meleeAttack() {
-    // Implement attack logic later
-    isAttacking = true;
-    attackCooldown = 0.3f; // 300ms cooldown
-}
+// void Player::meleeAttack() {
+//     // Implement attack logic later
+//     isAttacking = true;
+//     attackCooldown = 0.3f; // 300ms cooldown
+// }
 
 void Player::gainSoul(int amount) {
     soul += amount;
@@ -225,10 +286,11 @@ void Player::heal() {
 // =========================
 Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, float patrolSpeed, float detectionRadius)
     : leftBoundary_(leftBound), rightBoundary_(rightBound), patrolSpeed_(patrolSpeed),
-      detectionRadius_(detectionRadius), playerDetected_(false), isAttacking_(false),
-      attackCooldown_(1.5f), attackCooldownTimer_(0.f), attackDamage_(20), attackRange_(detectionRadius),
+      detectionRadius_(detectionRadius), playerDetected_(false),
+      isAttackOnCooldown_(false), attackCooldownTimer_(0.f), attackDamage_(20),
       isPatrolling_(true), movingRight_(true)
 {
+
     // Load enemy sprite
     sf::Image fullImage;
     if (fullImage.loadFromFile("enemy.png")) {
@@ -245,17 +307,40 @@ Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, floa
     sprite.setPosition(startX, startY);
     facingRight = true;
     
-    // Initialize physics - adjust these values for the smaller visual size
+     currentAttack.setDamage(attackDamage_);
+    
+    // Initialize physics
     vx = 0;
     vy = 0;
     gravity = 800.f;
     onGround = false;
 }
 
+
+
 void Enemy::update(float dt, sf::FloatRect platformBounds[])
 {
     // Update attack cooldown
-    updateAttackCooldown(dt);
+    if (isAttackOnCooldown_) {
+        attackCooldownTimer_ -= dt;
+        if (attackCooldownTimer_ <= 0.f) {
+            isAttackOnCooldown_ = false;
+            attackCooldownTimer_ = 0.f;
+        }
+    }
+    
+    // Update damage flash
+    updateDamageFlash(dt);
+    
+    // Update current attack
+    currentAttack.update(dt);
+    
+    // Update current attack position to follow enemy
+    if (currentAttack.isActive()) {
+        float offsetX = facingRight ? 30.f : -30.f;
+        float offsetY = -10.f;
+        currentAttack.sprite.setPosition(getPosition().x + offsetX, getPosition().y + offsetY);
+    }
     
     // Check if player is in detection range
     bool wasDetected = playerDetected_;
@@ -349,12 +434,19 @@ void Enemy::update(float dt, sf::FloatRect platformBounds[])
             break;
         }
     }
+    if (playerDetected_ && !isAttackOnCooldown_) {
+        performMeleeAttack();
+    }
+
 }
 
 void Enemy::draw(sf::RenderWindow& window)
 {
     window.draw(sprite);
+    currentAttack.draw(window);
 }
+
+
 
 void Enemy::patrolMovement(float dt)
 {
@@ -399,22 +491,17 @@ bool Enemy::isPlayerInRange(const sf::Vector2f& playerPosition) const
 
 void Enemy::performMeleeAttack()
 {
-    if (attackCooldownTimer_ <= 0.f) {
-        isAttacking_ = true;
-        attackCooldownTimer_ = attackCooldown_;
-        
-        // Attack logic will be implemented when we add combat system
-        std::cout << "Enemy performing melee attack!" << std::endl;
-        
-        // Reset attack state after a brief moment (we'll handle this in animation later)
-        // For now, we'll keep it simple
-    }
+    if (!isAttackOnCooldown_) {
+        currentAttack.activate(getPosition(), facingRight);
+        isAttackOnCooldown_ = true;
+        attackCooldownTimer_ = 2.0f; // 2 second cooldown
+        }
 }
 
-sf::Vector2f Enemy::getAttackRangeCenter() const
-{
-    return getPosition();
-}
+// sf::Vector2f Enemy::getAttackRangeCenter() const
+// {
+//     return getPosition();
+// }
 // =========================
 //   PLATFORM IMPLEMENTATION
 // =========================
@@ -442,6 +529,69 @@ void Platform::draw(sf::RenderWindow& window)
 }
 
 sf::FloatRect Platform::getBounds() const
+{
+    return sprite.getGlobalBounds();
+}
+
+// =========================
+//   MELEE ATTACK IMPLEMENTATION
+// =========================
+MeleeAttack::MeleeAttack()
+    : active(false), activeTime(0.f), maxActiveTime(0.2f), damage(20)
+{
+    // Load attack texture
+    if (!texture.loadFromFile("att.png")) {
+        std::cout << "Failed to load attack texture: att.png" << std::endl;
+        // Create a placeholder rectangle if texture fails to load
+        sf::Image placeholder;
+        placeholder.create(50, 50, sf::Color::Red);
+        texture.loadFromImage(placeholder);
+    }
+    
+    sprite.setTexture(texture);
+    sprite.setScale(0.15f, 0.15f);
+}
+
+void MeleeAttack::update(float dt)
+{
+    if (active) {
+        activeTime += dt;
+        if (activeTime >= maxActiveTime) {
+            active = false;
+            activeTime = 0.f;
+        }
+    }
+}
+
+void MeleeAttack::draw(sf::RenderWindow& window)
+{
+    if (active) {
+        window.draw(sprite);
+    }
+}
+
+void MeleeAttack::activate(const sf::Vector2f& position, bool facingRight)
+{
+    this->active = true;
+    this->activeTime = 0.f;
+    
+    // Position the attack sprite based on character facing direction
+    float offsetX = facingRight ? 30.f : -30.f; // Smaller offset
+    float offsetY = -10.f; // Adjust to position in hand
+    
+    sprite.setPosition(position.x + offsetX, position.y + offsetY);
+    
+    // Flip sprite based on direction
+    if (facingRight) {
+        sprite.setScale(0.15f, 0.15f);
+        sprite.setOrigin(0, 0);
+    } else {
+        sprite.setScale(-0.15f, 0.15f);
+        sprite.setOrigin(sprite.getLocalBounds().width, 0);
+    }
+}
+
+sf::FloatRect MeleeAttack::getHitbox() const
 {
     return sprite.getGlobalBounds();
 }
@@ -487,6 +637,44 @@ Game::Game()
     window.setFramerateLimit(60);
 }
 
+void Game::checkAttackCollisions()
+{
+    // Check if player's attack hits enemy (only if enemy is in range)
+    MeleeAttack* playerAttack = player.getCurrentAttack();
+    if (playerAttack->isActive() && 
+        playerAttack->getHitbox().intersects(enemy.getBounds()) &&
+        enemy.isPlayerInRange(player.getPosition())) {  // ADD THIS CHECK
+        
+        enemy.takeDamage(playerAttack->getDamage());
+        enemy.triggerDamageFlash();
+        std::cout << "Enemy hit! Health: " << enemy.health << std::endl;
+        
+        if (enemy.isDead()) {
+            std::cout << "Enemy defeated!" << std::endl;
+            enemy.health = enemy.maxHealth;
+            enemy.setPosition(700.f, 200.f);
+        }
+    }
+    
+    // Check if enemy's attack hits player (only if player is in range)
+    MeleeAttack* enemyAttack = enemy.getCurrentAttack();
+    if (enemyAttack->isActive() && 
+        enemyAttack->getHitbox().intersects(player.getBounds()) &&
+        enemy.isPlayerInRange(player.getPosition())) {  // ADD THIS CHECK
+        
+        player.takeDamage(enemyAttack->getDamage());
+        player.triggerDamageFlash();
+        std::cout << "Player hit! Health: " << player.health << std::endl;
+        
+        if (player.isDead()) {
+            std::cout << "Player died!" << std::endl;
+            player.health = player.maxHealth;
+            player.setPosition(100.f, 200.f);
+        }
+    }
+}
+
+
 // =========================
 //   GAME RUN FUNCTION (ADD THIS BACK)
 // =========================
@@ -526,10 +714,15 @@ void Game::processEvents()
             std::cout << "Health reduced! Current health: " << player.health << std::endl;
         }
         
-        // Soul increase when 'O' is pressed - using the gainSoul method
+        // Soul increase when 'O' is pressed
         if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::O) {
-            player.gainSoul(1);  // Use the method instead of direct access
+            player.gainSoul(1);
             std::cout << "Soul increased! Current soul: " << player.soul << std::endl;
+        }
+        
+        // Simple attack on J key press
+        if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::J) {
+            player.attack();
         }
     }
 }
@@ -551,6 +744,9 @@ void Game::update(float dt)
     // Update enemy with player position for detection
     enemy.setPlayerPosition(player.getPosition());
     enemy.update(dt, platformBounds);
+    
+    // Update attack collisions
+    checkAttackCollisions();
     
     // Update UI elements
     healthBar.update();

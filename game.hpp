@@ -59,30 +59,64 @@ private:
     sf::Sprite sprite;
 };
 
+// ========================
+// MELEE ATTACK CLASS
+// ========================
+class MeleeAttack {
+public:
+    MeleeAttack();
+    
+    void update(float dt);
+    void draw(sf::RenderWindow& window);
+    void activate(const sf::Vector2f& position, bool facingRight);
+    bool isActive() const { return active; }
+    sf::FloatRect getHitbox() const;
+    int getDamage() const { return damage; }
+    void setDamage(int dmg) { damage = dmg; }
+
+    // Make sprite public so we can update its position
+    sf::Sprite sprite;
+
+private:
+    sf::Texture texture;
+    bool active;
+    float activeTime;
+    float maxActiveTime;
+    int damage;
+};
+
 class Character {
 public:
     Character();
     virtual ~Character() {}
 
-    // Pure virtual functions - must be implemented by derived classes
+    // Pure virtual functions
     virtual void update(float dt, sf::FloatRect platformBounds[]) = 0;
     virtual void draw(sf::RenderWindow& window) = 0;
     
-    // Common functions that can be used by all characters
+    // Common functions
     virtual void takeDamage(int damage);
     virtual bool isDead() const;
     
-    // Getters for collision and positioning
+    // Getters
     sf::FloatRect getBounds() const;
     sf::Vector2f getPosition() const;
+    void resetColor();
     bool isFacingRight() const;
+    
+    // Position setters
+    void setPosition(float x, float y) { sprite.setPosition(x, y); }
+    
+    // Damage flash system
+    void triggerDamageFlash();
+    void updateDamageFlash(float dt);
 
     // Make health public for UI access
     int health;
     int maxHealth;
 
 protected:
-    // Common attributes for all characters
+    // Common attributes
     sf::Texture texture;
     sf::Sprite sprite;
     
@@ -95,8 +129,11 @@ protected:
     
     // Collision and state
     bool onGround;
+    
+    // Damage flash system
+    float damageFlashTimer;
+    sf::Color originalColor;
 };
-
 class Player : public Character {
 public:
     Player();
@@ -105,30 +142,38 @@ public:
 
     // Player-specific functions
     void jump();
-    void meleeAttack();
+    void attack();  // This will set the flag
     void gainSoul(int amount);
     void heal();
 
     // Make soul public for UI access
     int soul;
     int maxSoul;
+
+    // Get current attack for collision detection
+    MeleeAttack* getCurrentAttack() { return &currentAttack; }
+
+    // Add a method to check if attack is allowed
+    bool canAttack() const { return !isAttackOnCooldown; }
+
 private:
     // Player-specific attributes
     float moveSpeed;
     float jumpForce;
-    bool isAttacking;
-    float attackCooldown;
+    
+    // Attack system - simplified with flag
+    MeleeAttack currentAttack;
+    bool isAttackOnCooldown;
+    float attackCooldownTimer;
 };
+
 // ========================
 // ENEMY CLASS
 // ========================
-class Enemy : public Character {
+class Enemy:public Character {
 public:
     Enemy(float startX, float startY, float leftBound, float rightBound, float patrolSpeed, float detectionRadius);
-    
-    // CHANGE THIS LINE - Remove the playerPosition parameter to match base class
     void update(float dt, sf::FloatRect platformBounds[]) override;
-    
     void draw(sf::RenderWindow& window) override;
     
     // Enemy-specific functions
@@ -141,9 +186,11 @@ public:
     bool isPatrolling() const { return isPatrolling_; }
     bool isPlayerDetected() const { return playerDetected_; }
     float getDetectionRadius() const { return detectionRadius_; }
-    sf::Vector2f getAttackRangeCenter() const;
+    
+    // Get current attack
+    MeleeAttack* getCurrentAttack() { return &currentAttack; }
 
-    // ADD THIS: We need a way to set the player position for detection
+    // Set player position for detection
     void setPlayerPosition(const sf::Vector2f& position) { playerPosition_ = position; }
 
 private:
@@ -155,22 +202,26 @@ private:
     float rightBoundary_;
     float patrolSpeed_;
     
-    // Detection system (circular radius around enemy)
+    // Detection system
     float detectionRadius_;
     bool playerDetected_;
     
     // Attack system
     bool isAttacking_;
     float attackCooldown_;
-    float attackCooldownTimer_;
     int attackDamage_;
-    float attackRange_; // Same as detection radius for melee
-    
+    // Attack system - simplified with flag
+    bool isAttackOnCooldown_;
+    float attackCooldownTimer_;
+
     // State flags
     bool isPatrolling_;
-    bool movingRight_; // Current patrol direction
+    bool movingRight_;
     
-    // ADD THIS: Store player position for detection
+    // Melee attack
+    MeleeAttack currentAttack;
+    
+    // Store player position for detection
     sf::Vector2f playerPosition_;
 };
 
@@ -194,6 +245,8 @@ protected:
     sf::Texture texture;
     sf::Sprite sprite;
 };
+
+
 
 class Game {
 public:
@@ -222,6 +275,7 @@ private:
     void processEvents();
     void update(float dt);
     void render();
+    void checkAttackCollisions();
 };
 
 #endif
