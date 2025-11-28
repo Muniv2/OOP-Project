@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <string>
+#include <cmath>  // For std::sqrt
 
 // ========================
 // UI ELEMENT BASE CLASS
@@ -111,13 +112,66 @@ public:
     // Make soul public for UI access
     int soul;
     int maxSoul;
-
 private:
     // Player-specific attributes
     float moveSpeed;
     float jumpForce;
     bool isAttacking;
     float attackCooldown;
+};
+// ========================
+// ENEMY CLASS
+// ========================
+class Enemy : public Character {
+public:
+    Enemy(float startX, float startY, float leftBound, float rightBound, float patrolSpeed, float detectionRadius);
+    
+    // CHANGE THIS LINE - Remove the playerPosition parameter to match base class
+    void update(float dt, sf::FloatRect platformBounds[]) override;
+    
+    void draw(sf::RenderWindow& window) override;
+    
+    // Enemy-specific functions
+    bool isPlayerInRange(const sf::Vector2f& playerPosition) const;
+    void performMeleeAttack();
+    bool isAttacking() const { return isAttacking_; }
+    int getAttackDamage() const { return attackDamage_; }
+    
+    // Getters
+    bool isPatrolling() const { return isPatrolling_; }
+    bool isPlayerDetected() const { return playerDetected_; }
+    float getDetectionRadius() const { return detectionRadius_; }
+    sf::Vector2f getAttackRangeCenter() const;
+
+    // ADD THIS: We need a way to set the player position for detection
+    void setPlayerPosition(const sf::Vector2f& position) { playerPosition_ = position; }
+
+private:
+    void patrolMovement(float dt);
+    void updateAttackCooldown(float dt);
+    
+    // Patrol boundaries and movement
+    float leftBoundary_;
+    float rightBoundary_;
+    float patrolSpeed_;
+    
+    // Detection system (circular radius around enemy)
+    float detectionRadius_;
+    bool playerDetected_;
+    
+    // Attack system
+    bool isAttacking_;
+    float attackCooldown_;
+    float attackCooldownTimer_;
+    int attackDamage_;
+    float attackRange_; // Same as detection radius for melee
+    
+    // State flags
+    bool isPatrolling_;
+    bool movingRight_; // Current patrol direction
+    
+    // ADD THIS: Store player position for detection
+    sf::Vector2f playerPosition_;
 };
 
 class Platform {
@@ -152,6 +206,7 @@ private:
 
     Background background;  // Simple background
     Player player;
+    Enemy enemy; 
     Platform platform1;
     Platform platform2;
     Platform platform3;

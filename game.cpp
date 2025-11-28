@@ -220,7 +220,197 @@ void Player::heal() {
     }
 }
 
+// =========================
+//   ENEMY IMPLEMENTATION
+// =========================
+Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, float patrolSpeed, float detectionRadius)
+    : leftBoundary_(leftBound), rightBoundary_(rightBound), patrolSpeed_(patrolSpeed),
+      detectionRadius_(detectionRadius), playerDetected_(false), isAttacking_(false),
+      attackCooldown_(1.5f), attackCooldownTimer_(0.f), attackDamage_(20), attackRange_(detectionRadius),
+      isPatrolling_(true), movingRight_(true)
+{
+    // Load enemy sprite
+    sf::Image fullImage;
+    if (fullImage.loadFromFile("enemy.png")) {
+        // Extract enemy frame from sprite sheet (adjust rect as needed)
+        sf::IntRect frameRect(0, 0, 415, 326); // Adjust based on your enemy sprite sheet
+        sf::Image frameImage;
+        frameImage.create(frameRect.width, frameRect.height, sf::Color::Transparent);
+        frameImage.copy(fullImage, 0, 0, frameRect, true);
+        texture.loadFromImage(frameImage);
+    }
 
+    sprite.setTexture(texture);
+    sprite.setScale(0.35f, 0.35f);
+    sprite.setPosition(startX, startY);
+    facingRight = true;
+    
+    // Initialize physics
+    vx = 0;
+    vy = 0;
+    gravity = 800.f;
+    onGround = false;
+}
+
+void Enemy::update(float dt, sf::FloatRect platformBounds[])
+{
+    // Update attack cooldown
+    updateAttackCooldown(dt);
+    
+    // Check if player is in detection range (use stored playerPosition_)
+    playerDetected_ = isPlayerInRange(playerPosition_);
+    
+    if (playerDetected_) {
+        // Stop patrolling and face the player
+        isPatrolling_ = false;
+        vx = 0;
+        
+        // Face the player direction
+        if (playerPosition_.x < getPosition().x) {
+            facingRight = false;
+            sprite.setScale(-0.35f, 0.35f);
+            sprite.setOrigin(0, 0);
+        } else {
+            facingRight = true;
+            sprite.setScale(-0.35f, 0.35f);
+            sprite.setOrigin(sprite.getLocalBounds().width, 0);
+        }
+        
+        // Attack if cooldown is ready
+        if (attackCooldownTimer_ <= 0.f) {
+            performMeleeAttack();
+        }
+    } else {
+        // Resume patrolling if player left detection range
+        if (!isPatrolling_) {
+            isPatrolling_ = true;
+        }
+        
+        // Patrol movement
+        if (isPatrolling_) {
+            patrolMovement(dt);
+        }
+    }
+    
+    // Apply gravity
+    vy += gravity * dt;
+    
+    // Store current position
+    sf::Vector2f currentPos = sprite.getPosition();
+    
+    // Calculate new position
+    sf::Vector2f newPos = currentPos + sf::Vector2f(vx * dt, vy * dt);
+    
+    // Apply horizontal movement first
+    sprite.setPosition(newPos.x, currentPos.y);
+    
+    // Check horizontal collisions with platforms
+    sf::FloatRect enemyBounds = getBounds();
+    bool horizontalCollision = false;
+    for (int i = 0; i < 7; i++) {
+        if (enemyBounds.intersects(platformBounds[i])) {
+            horizontalCollision = true;
+            break;
+        }
+    }
+    
+    // If horizontal collision, revert X position
+    if (horizontalCollision) {
+        sprite.setPosition(currentPos.x, currentPos.y);
+        vx = 0;
+    }
+    
+    // Apply vertical movement
+    sprite.setPosition(sprite.getPosition().x, newPos.y);
+    
+    // Check vertical collisions with platforms
+    enemyBounds = getBounds();
+    onGround = false;
+    
+    for (int i = 0; i < 7; i++) {
+        if (enemyBounds.intersects(platformBounds[i])) {
+            sf::FloatRect platform = platformBounds[i];
+            
+            // Landing on platform from above
+            if (vy > 0 && enemyBounds.top + enemyBounds.height > platform.top) {
+                sprite.setPosition(sprite.getPosition().x, platform.top - enemyBounds.height);
+                vy = 0;
+                onGround = true;
+            }
+            // Hitting platform from below
+            else if (vy < 0 && enemyBounds.top < platform.top + platform.height) {
+                sprite.setPosition(sprite.getPosition().x, platform.top + platform.height);
+                vy = 0;
+            }
+            break;
+        }
+    }
+}
+
+void Enemy::draw(sf::RenderWindow& window)
+{
+    window.draw(sprite);
+}
+
+void Enemy::patrolMovement(float dt)
+{
+    // Move in current direction
+    if (movingRight_) {
+        vx = patrolSpeed_;
+        facingRight = true;
+        sprite.setScale(-0.35f, 0.35f);
+        sprite.setOrigin(sprite.getLocalBounds().width, 0);
+    } else {
+        vx = -patrolSpeed_;
+        facingRight = false;
+        sprite.setScale(0.35f, 0.35f);
+        sprite.setOrigin(0, 0);
+    }
+    
+    // Check boundaries and instantly turn
+    sf::Vector2f currentPos = getPosition();
+    if (currentPos.x >= rightBoundary_) {
+        movingRight_ = false;
+    } else if (currentPos.x <= leftBoundary_) {
+        movingRight_ = true;
+    }
+}
+
+void Enemy::updateAttackCooldown(float dt)
+{
+    if (attackCooldownTimer_ > 0.f) {
+        attackCooldownTimer_ -= dt;
+    }
+}
+
+bool Enemy::isPlayerInRange(const sf::Vector2f& playerPosition) const
+{
+    sf::Vector2f enemyPos = getPosition();
+    float dx = playerPosition.x - enemyPos.x;
+    float dy = playerPosition.y - enemyPos.y;
+    float distance = std::sqrt(dx * dx + dy * dy);
+    
+    return distance <= detectionRadius_;
+}
+
+void Enemy::performMeleeAttack()
+{
+    if (attackCooldownTimer_ <= 0.f) {
+        isAttacking_ = true;
+        attackCooldownTimer_ = attackCooldown_;
+        
+        // Attack logic will be implemented when we add combat system
+        std::cout << "Enemy performing melee attack!" << std::endl;
+        
+        // Reset attack state after a brief moment (we'll handle this in animation later)
+        // For now, we'll keep it simple
+    }
+}
+
+sf::Vector2f Enemy::getAttackRangeCenter() const
+{
+    return getPosition();
+}
 // =========================
 //   PLATFORM IMPLEMENTATION
 // =========================
@@ -280,7 +470,8 @@ Game::Game()
       platform5("platform.png", 980.f, 525.f),
       platform6("platform.png", 1255.f, 450.f),
       platform7("platform.png", 1530.f, 375.f),
-      // Initialize UI elements with pointers to player's health and soul
+      // Initialize enemy with: startX, startY, leftBound, rightBound, patrolSpeed, detectionRadius
+      enemy(800.f, 300.f, 700.f, 900.f, 100.f, 150.f),  // ADD THIS LINE
       healthBar(&player.health, player.maxHealth),
       soulBar(&player.soul)
 {
@@ -350,7 +541,12 @@ void Game::update(float dt)
         platform6.getBounds(),
         platform7.getBounds()
     };
+    
     player.update(dt, platformBounds);
+    
+    // Update enemy with player position for detection
+    enemy.setPlayerPosition(player.getPosition());
+    enemy.update(dt, platformBounds);
     
     // Update UI elements
     healthBar.update();
@@ -375,6 +571,9 @@ void Game::render()
 
     // Draw player
     player.draw(window);
+
+    // Draw enemy (ADD THIS LINE)
+    enemy.draw(window);
 
     // Draw UI elements last (on top of everything)
     healthBar.draw(window);
