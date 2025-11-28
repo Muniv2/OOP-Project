@@ -471,7 +471,7 @@ Game::Game()
       platform6("platform.png", 1255.f, 450.f),
       platform7("platform.png", 1530.f, 375.f),
       // Initialize enemy with: startX, startY, leftBound, rightBound, patrolSpeed, detectionRadius
-      enemy(800.f, 300.f, 700.f, 900.f, 100.f, 150.f),  // ADD THIS LINE
+      enemy(800.f, 300.f, 600.f, 800.f, 100.f, 100.f),  // ADD THIS LINE
       healthBar(&player.health, player.maxHealth),
       soulBar(&player.soul)
 {
