@@ -232,8 +232,8 @@ Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, floa
     // Load enemy sprite
     sf::Image fullImage;
     if (fullImage.loadFromFile("enemy.png")) {
-        // Extract enemy frame from sprite sheet (adjust rect as needed)
-        sf::IntRect frameRect(0, 0, 415, 326); // Adjust based on your enemy sprite sheet
+        // Use the larger frame rectangle you specified
+        sf::IntRect frameRect(0, 0, 415, 326);
         sf::Image frameImage;
         frameImage.create(frameRect.width, frameRect.height, sf::Color::Transparent);
         frameImage.copy(fullImage, 0, 0, frameRect, true);
@@ -241,11 +241,11 @@ Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, floa
     }
 
     sprite.setTexture(texture);
-    sprite.setScale(0.35f, 0.35f);
+    sprite.setScale(0.35f, 0.35f); // Your scale
     sprite.setPosition(startX, startY);
     facingRight = true;
     
-    // Initialize physics
+    // Initialize physics - adjust these values for the smaller visual size
     vx = 0;
     vy = 0;
     gravity = 800.f;
@@ -257,20 +257,23 @@ void Enemy::update(float dt, sf::FloatRect platformBounds[])
     // Update attack cooldown
     updateAttackCooldown(dt);
     
-    // Check if player is in detection range (use stored playerPosition_)
+    // Check if player is in detection range
+    bool wasDetected = playerDetected_;
     playerDetected_ = isPlayerInRange(playerPosition_);
     
     if (playerDetected_) {
-        // Stop patrolling and face the player
+        // Stop patrolling
         isPatrolling_ = false;
         vx = 0;
         
-        // Face the player direction
+        // Continuously face the player based on current position
         if (playerPosition_.x < getPosition().x) {
+            // Player is to the left - face left
             facingRight = false;
-            sprite.setScale(-0.35f, 0.35f);
+            sprite.setScale(0.35f, 0.35f);
             sprite.setOrigin(0, 0);
         } else {
+            // Player is to the right - face right
             facingRight = true;
             sprite.setScale(-0.35f, 0.35f);
             sprite.setOrigin(sprite.getLocalBounds().width, 0);
@@ -281,9 +284,10 @@ void Enemy::update(float dt, sf::FloatRect platformBounds[])
             performMeleeAttack();
         }
     } else {
-        // Resume patrolling if player left detection range
-        if (!isPatrolling_) {
+        // Player left detection range - resume patrolling
+        if (wasDetected && !isPatrolling_) {
             isPatrolling_ = true;
+            // Keep the current facing direction for patrol
         }
         
         // Patrol movement
@@ -471,7 +475,7 @@ Game::Game()
       platform6("platform.png", 1255.f, 450.f),
       platform7("platform.png", 1530.f, 375.f),
       // Initialize enemy with: startX, startY, leftBound, rightBound, patrolSpeed, detectionRadius
-      enemy(800.f, 300.f, 600.f, 800.f, 100.f, 100.f),  // ADD THIS LINE
+    enemy(700.f, 200.f, 600.f, 800.f, 100.f, 50.f),  // Changed Y to 200 and increased detection radius,  // ADD THIS LINE
       healthBar(&player.health, player.maxHealth),
       soulBar(&player.soul)
 {
