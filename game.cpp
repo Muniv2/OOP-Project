@@ -465,11 +465,11 @@ void Game::processEvents()
             } else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter && option == 1) {
                 window.close();
             }
-            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::M) {
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Up or event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Down) {
                 option = (option + 1) % 2;
             }
         } else if (state == 1) {
-            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::J) {
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::M) {
                 player.meleeAttack();
             }
         }
