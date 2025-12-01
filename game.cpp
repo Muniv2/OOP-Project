@@ -401,6 +401,7 @@ sf::FloatRect Platform::getBounds() const
 
 Game::Game()
     : background("bgimg.png"),
+      mainmenu("mainmenu.png"),
       platform1("platform.png", -20.f, 750.f),
       platform2("platform.png", 255.f, 750.f),
       platform3("platform.png", 530.f, 750.f),
@@ -425,6 +426,20 @@ Game::Game()
 {
     state = 0;
     option = 0;
+    sf::Image fullImage;
+    if (!fullImage.loadFromFile("title.png"))
+        std::cout << "Failed to load platform sprite!\n";
+
+    sf::IntRect frameRect(0, 0, 1328, 275);
+    sf::Image frameImage;
+    frameImage.create(frameRect.width, frameRect.height);
+    frameImage.copy(fullImage, 0, 0, frameRect, false);
+
+    if (!titleTexture.loadFromImage(frameImage))
+        std::cout << "Failed to create platform texture!\n";
+
+    titleSprite.setTexture(titleTexture);
+    titleSprite.setPosition(0, 0);
     
     sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
     unsigned int width  = desktop.width  * 0.8f;
@@ -581,22 +596,34 @@ void Game::render()
     if (state == 0) {
         window.setView(window.getDefaultView());
 
+        sf::Vector2u windowSize = window.getSize(); // already width x height
+        sf::FloatRect spriteBounds = mainmenu.sprite.getLocalBounds();
+
+        // Compute scale to fit window
+        float scaleX = static_cast<float>(windowSize.x) / spriteBounds.width;
+        float scaleY = static_cast<float>(windowSize.y) / spriteBounds.height;
+
+        // Apply scale
+        mainmenu.sprite.setScale(scaleX, scaleY);
+
+        mainmenu.draw(window);
+
+        titleSprite.setPosition(100 , 50);
+        window.draw(titleSprite);
+
+
         sf::Font font;
         font.loadFromFile("arial.ttf");
 
-        sf::Text title("HOLLOW KNIGHT CLONE", font, 64);
         sf::Text option1("Start Game", font, 32);
         sf::Text option2("Quit Game", font, 32);
 
-        title.setFillColor(sf::Color::White);
         option1.setFillColor(sf::Color(200,200,200));
         option2.setFillColor(sf::Color(200,200,200));
 
-        title.setPosition(350, 200);
         option1.setPosition(700, 400);
         option2.setPosition(705, 470);
 
-        window.draw(title);
         window.draw(option1);
         window.draw(option2);
 

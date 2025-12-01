@@ -53,6 +53,7 @@ public:
 private:
     sf::Texture texture;
     sf::Sprite sprite;
+    friend class Game;
 };
 
 
@@ -180,8 +181,11 @@ private:
 
     int state;
     int option;
+    sf::Texture titleTexture;
+    sf::Sprite titleSprite;
 
     Background background;
+    Background mainmenu;
     Player player;
     Platform platform1;
     Platform platform2;
