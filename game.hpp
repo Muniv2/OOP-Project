@@ -5,7 +5,9 @@
 #include <iostream>
 #include <string>
 #include <cmath> 
+#include <string>
 
+using namespace std;
 
 class UIElement {
 protected:
@@ -69,7 +71,7 @@ public:
     virtual void setColor(const sf::Color& color) = 0;
 
     int health;
-
+    int damage;
 protected:
     sf::Texture texture;
     sf::Sprite sprite;
@@ -94,11 +96,11 @@ public:
     void jump();
     void gainSoul(int amount);
     void heal();
-
     void setColor(const sf::Color& color);
     void respawn();
     
 private:
+    int damage;
     float moveSpeed;
     float jumpForce;
     int maxHealth;
@@ -116,7 +118,7 @@ private:
 
 class Enemy : public Character {
 public:
-    Enemy(float startX, float startY, float leftBound, float rightBound);
+    Enemy(float startX, float startY, float leftBound, float rightBound, string filename, float scale, int healthAmount, int damageAmount);
 
     void update(float dt, sf::FloatRect platformBounds[]) override;
     void draw(sf::RenderWindow& window) override;
@@ -138,6 +140,7 @@ private:
     Player* targetPlayer;
     float patrolLeft;
     float patrolRight;
+    float scale;
     float patrolSpeed;
     friend class Game;
 };
@@ -186,8 +189,9 @@ private:
     Platform platform7;
     Platform platform8;
     Platform platform9;
-    Enemy enemy;
-
+    Enemy enemy1;
+    Enemy enemy2;
+    
     HealthBar healthBar;
     SoulBar soulBar;
 

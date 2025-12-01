@@ -73,7 +73,7 @@ bool Character::isFacingRight() const {
 
 Player::Player() : maxHealth(100), moveSpeed(300.f), jumpForce(-550.f),
     soul(0), maxSoul(100), isAttacking(false), attackDuration(0.f), 
-    attackCooldown(0.f), attacked(true)
+    attackCooldown(0.f), attacked(true), damage(25)
 {
     sf::Image fullImage;
     if (fullImage.loadFromFile("player.png")) {
@@ -255,12 +255,12 @@ void Player::setColor(const sf::Color& color) {
     sprite.setColor(color);
 }
 
-Enemy::Enemy(float startX, float startY, float leftBound, float rightBound) {
-    texture.loadFromFile("enemy2.png");
+Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, string filename, float scale, int healthAmount, int damageAmount) {
+    texture.loadFromFile(filename);
     sprite.setTexture(texture);
 
     sprite.setPosition(startX, startY);
-    sprite.setScale(0.75f, 0.75f);
+    sprite.setScale(scale, scale);
 
     attackRange = 30.f;
     chaseSpeed = 200.f;
@@ -274,9 +274,9 @@ Enemy::Enemy(float startX, float startY, float leftBound, float rightBound) {
     patrolLeft = leftBound;
     patrolRight = rightBound;
     patrolSpeed = 150.f;
-
-    health = 30;
-
+    this->scale = scale;
+    health = healthAmount;
+    damage= damageAmount;
     isDead = false;
     despawnTimer = 1.f;
     colorTimer = 0.f;
@@ -332,7 +332,7 @@ void Enemy::update(float dt, sf::FloatRect platformBounds[]) {
         if (attackTimer <= 0.f) {
             isAttacking = true;
             attackTimer = attackCooldown;
-            targetPlayer->health -= 10;
+            targetPlayer->health -= damage;
             if (targetPlayer->health < 0) targetPlayer->health = 0;
             std::cout << "Player hit! Current health: " << targetPlayer->health << std::endl;
         }
@@ -347,7 +347,7 @@ void Enemy::update(float dt, sf::FloatRect platformBounds[]) {
     if (vx > 0.f) facingRight = true;
     else if (vx < 0.f) facingRight = false;
 
-    sprite.setScale(facingRight ? 0.75f : -0.75f, 0.75f);
+    sprite.setScale(facingRight ? scale : -scale, scale);
     sprite.setOrigin(facingRight ? 0.f : texture.getSize().x, 0.f);
 
     if (sprite.getPosition().x >= patrolRight) {
@@ -412,7 +412,8 @@ Game::Game()
       platform9("platform.png", 2350.f, 275.f),
       healthBar(&player.health, player.maxHealth),
       soulBar(&player.soul),
-      enemy(600.f, 725.f, 500.f, 800.f)
+      enemy1(600.f, 725.f, 500.f, 700.f, "enemy2.png", 0.75f, 50, 15),
+      enemy2(600.f, 725.f, 800.f, 1000.f, "enemy2.png", 0.75f, 50, 15)
 {
     sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
     unsigned int width  = desktop.width  * 0.8f;
@@ -425,7 +426,8 @@ Game::Game()
     camera.setCenter(player.getPosition());
 
 
-    enemy.setPlayer(&player);
+    enemy1.setPlayer(&player);
+    enemy2.setPlayer(&player);
 }
 
 
@@ -453,16 +455,7 @@ void Game::processEvents()
     while (window.pollEvent(event)) {
         if (event.type == sf::Event::Closed)
             window.close();
-        
-        if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::P) {
-            healthBar.takeDamage(10);
-            std::cout << "Health reduced! Current health: " << player.health << std::endl;
-        }
-        
-        if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::O) {
-            player.gainSoul(1);
-            std::cout << "Soul increased! Current soul: " << player.soul << std::endl;
-        }
+    
 
         if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::J) {
             player.meleeAttack();
@@ -487,30 +480,40 @@ void Game::update(float dt)
     };
     
     player.update(dt, platformBounds);
-    enemy.update(dt, platformBounds);
+
+    Enemy* enemies[] = {
+        &enemy1, 
+        &enemy2 
+        };
+
+    for (int i = 0; i < 2; i++) {
+        enemies[i]->update(dt, platformBounds);
+    }
     
     if (player.isAttacking && !player.attacked) {
         sf::FloatRect attackBox = player.getAttackHitbox();
-        if (attackBox.intersects(enemy.getBounds())) {
-            // Deal damage
-            player.attacked = true;
-            enemy.health -= 10;  
-            player.gainSoul(5);
-            if (enemy.health <= 0) {
-                enemy.health = -1;
-                enemy.isDead = true;
-                // enemy.despawnTimer = 1.0f;
-                enemy.setColor(sf::Color(80, 80, 80));
-            } else {
-                std::cout << "Enemy hit! Current health: " << enemy.health << std::endl;
-                enemy.setColor(sf::Color::Red);
-                enemy.colorTimer = 0.5f;
-            }
+        for (int j = 0; j < 2; j++) {
+            Enemy& enemy = *enemies[j];
+            if (attackBox.intersects(enemy.getBounds())) {
+                // Deal damage
+                player.attacked = true;
+                enemy.health -= player.damage;  
+                player.gainSoul(5);
+                if (enemy.health <= 0) {
+                    enemy.health = -1;
+                    enemy.isDead = true;
+                    // enemy.despawnTimer = 1.0f;
+                    enemy.setColor(sf::Color(80, 80, 80));
+                } else {
+                    std::cout << "Enemy hit! Current health: " << enemy.health << std::endl;
+                    enemy.setColor(sf::Color::Red);
+                    enemy.colorTimer = 0.5f;
+                }
 
         }
     }
-
-    sf::Vector2f camPos = camera.getCenter();
+}
+ sf::Vector2f camPos = camera.getCenter();
     camPos.x = player.getPosition().x;
 
     float smooth = 5.f;
@@ -558,7 +561,8 @@ void Game::render()
     platform9.draw(window);
 
     player.draw(window);
-    if (!enemy.isDead || enemy.despawnTimer > 0) enemy.draw(window);
+    if (!enemy1.isDead || enemy1.despawnTimer > 0) enemy1.draw(window);
+    if (!enemy2.isDead || enemy2.despawnTimer > 0) enemy2.draw(window);
 
     window.setView(window.getDefaultView());
 
