@@ -169,7 +169,7 @@ void Player::update(float dt, sf::FloatRect platformBounds[])
     
     sf::FloatRect playerBounds = getBounds();
     bool horizontalCollision = false;
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 14; i++) {
         if (playerBounds.intersects(platformBounds[i])) {
             horizontalCollision = true;
             break;
@@ -186,7 +186,7 @@ void Player::update(float dt, sf::FloatRect platformBounds[])
     playerBounds = getBounds();
     onGround = false;
     
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 14; i++) {
         if (playerBounds.intersects(platformBounds[i])) {
             sf::FloatRect platform = platformBounds[i];
             
@@ -276,7 +276,7 @@ Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, stri
     patrolSpeed = 150.f;
     this->scale = scale;
     health = healthAmount;
-    damage= damageAmount;
+    this->damage = damageAmount;
     isDead = false;
     despawnTimer = 1.f;
     colorTimer = 0.f;
@@ -332,7 +332,7 @@ void Enemy::update(float dt, sf::FloatRect platformBounds[]) {
         if (attackTimer <= 0.f) {
             isAttacking = true;
             attackTimer = attackCooldown;
-            targetPlayer->health -= damage;
+            targetPlayer->health -= this->damage;
             if (targetPlayer->health < 0) targetPlayer->health = 0;
             std::cout << "Player hit! Current health: " << targetPlayer->health << std::endl;
         }
@@ -408,12 +408,20 @@ Game::Game()
       platform5("platform.png", 980.f, 750.f),
       platform6("platform.png", 1255.f, 750.f),
       platform7("platform.png", 1850.f, 750.f),
-      platform8("platform.png", 2350.f, 600.f),
-      platform9("platform.png", 2350.f, 275.f),
+      platform8("platform.png", 2250.f, 600.f),
+      platform9("platform.png", 2150.f, 275.f),
+      Platform10("platform.png", 2850.f, 750.f),
+      Platform11("platform.png", 3150.f, 750.f),
+      Platform12("platform.png", 2650.f, 420.f),
+      Platform13("platform.png", 2950.f, 420.f),
+      Platform14("platform.png", 3450.f, 575.f),
       healthBar(&player.health, player.maxHealth),
       soulBar(&player.soul),
       enemy1(600.f, 725.f, 500.f, 700.f, "enemy2.png", 0.75f, 50, 15),
-      enemy2(600.f, 725.f, 800.f, 1000.f, "enemy2.png", 0.75f, 50, 15)
+      enemy2(600.f, 725.f, 800.f, 1000.f, "enemy2.png", 0.75f, 50, 15),
+      enemy3(600.f, 725.f, 2900.f, 3200.f, "Deephunter.png", 0.75f, 100, 20),
+      enemy4(280.f, 405.f, 2700.f, 3000.f, "enemy2.png", 0.75f, 50, 15) 
+
 {
     state = 0;
     option = 0;
@@ -431,6 +439,8 @@ Game::Game()
 
     enemy1.setPlayer(&player);
     enemy2.setPlayer(&player);
+    enemy3.setPlayer(&player);
+    enemy4.setPlayer(&player);
 }
 
 
@@ -490,23 +500,30 @@ void Game::update(float dt)
         platform6.getBounds(),
         platform7.getBounds(),
         platform8.getBounds(),
-        platform9.getBounds()
+        platform9.getBounds(),
+        Platform10.getBounds(),
+        Platform11.getBounds(),
+        Platform12.getBounds(),
+        Platform13.getBounds(),
+        Platform14.getBounds()
     };
     
     player.update(dt, platformBounds);
 
     Enemy* enemies[] = {
         &enemy1, 
-        &enemy2 
+        &enemy2,
+        &enemy3,
+        &enemy4
         };
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 4; i++) {
         enemies[i]->update(dt, platformBounds);
     }
     
     if (player.isAttacking && !player.attacked) {
         sf::FloatRect attackBox = player.getAttackHitbox();
-        for (int j = 0; j < 2; j++) {
+        for (int j = 0; j < 4; j++) {
             Enemy& enemy = *enemies[j];
             if (attackBox.intersects(enemy.getBounds())) {
                 // Deal damage
@@ -620,15 +637,22 @@ void Game::render()
     platform7.draw(window);
     platform8.draw(window);
     platform9.draw(window);
+    Platform10.draw(window);
+    Platform11.draw(window);
+    Platform12.draw(window);
+    Platform13.draw(window);
+    Platform14.draw(window);
 
     player.draw(window);
     if (!enemy1.isDead || enemy1.despawnTimer > 0) enemy1.draw(window);
     if (!enemy2.isDead || enemy2.despawnTimer > 0) enemy2.draw(window);
+    if (!enemy3.isDead || enemy3.despawnTimer > 0) enemy3.draw(window);
+    if (!enemy4.isDead || enemy4.despawnTimer > 0) enemy4.draw(window);
 
     window.setView(window.getDefaultView());
 
     healthBar.draw(window);
     soulBar.draw(window);
 
-    window.display();
+    window.display(); 
 }

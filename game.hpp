@@ -192,9 +192,16 @@ private:
     Platform platform7;
     Platform platform8;
     Platform platform9;
+    Platform Platform10;
+    Platform Platform11;
+    Platform Platform12;
+    Platform Platform13;
+    Platform Platform14;
     Enemy enemy1;
     Enemy enemy2;
-    
+    Enemy enemy3;
+    Enemy enemy4;
+
     HealthBar healthBar;
     SoulBar soulBar;
 
