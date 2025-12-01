@@ -169,7 +169,7 @@ void Player::update(float dt, sf::FloatRect platformBounds[])
     
     sf::FloatRect playerBounds = getBounds();
     bool horizontalCollision = false;
-    for (int i = 0; i < 14; i++) {
+    for (int i = 0; i < 20; i++) {
         if (playerBounds.intersects(platformBounds[i])) {
             horizontalCollision = true;
             break;
@@ -186,7 +186,7 @@ void Player::update(float dt, sf::FloatRect platformBounds[])
     playerBounds = getBounds();
     onGround = false;
     
-    for (int i = 0; i < 14; i++) {
+    for (int i = 0; i < 20; i++) {
         if (playerBounds.intersects(platformBounds[i])) {
             sf::FloatRect platform = platformBounds[i];
             
@@ -317,7 +317,6 @@ void Enemy::update(float dt, sf::FloatRect platformBounds[]) {
 
     attackTimer -= dt;
     isAttacking = false;
-
     sf::Vector2f pos = sprite.getPosition();
     sf::Vector2f playerPos = targetPlayer->getPosition();
     // float dist = std::abs(playerPos.x - pos.x);
@@ -326,7 +325,6 @@ void Enemy::update(float dt, sf::FloatRect platformBounds[]) {
     float dist = std::sqrt(dx * dx + dy * dy);
     std::cout << dist << std::endl;
     float vx = 0.f;
-
     if (dist <= attackRange) {
         vx = 0.f;
         if (attackTimer <= 0.f) {
@@ -416,12 +414,20 @@ Game::Game()
       Platform12("platform.png", 2650.f, 420.f),
       Platform13("platform.png", 2950.f, 420.f),
       Platform14("platform.png", 3450.f, 575.f),
+      Platform15("platform.png", 1850.f, 275.f),
+      Platform16("platform.png", 1600.f, 275.f),
+      Platform17("platform.png", 1100.f, 275.f),
+      Platform18("platform.png", 850.f, 275.f),
+      Platform19("platform.png", 550.f, 275.f),
+      Platform20("platform.png", 250.f, 275.f),
       healthBar(&player.health, player.maxHealth),
       soulBar(&player.soul),
-      enemy1(600.f, 725.f, 500.f, 700.f, "enemy2.png", 0.75f, 50, 15),
-      enemy2(600.f, 725.f, 800.f, 1000.f, "enemy2.png", 0.75f, 50, 15),
-      enemy3(600.f, 725.f, 2900.f, 3200.f, "Deephunter.png", 0.75f, 100, 20),
-      enemy4(280.f, 405.f, 2700.f, 3000.f, "enemy2.png", 0.75f, 50, 15) 
+      enemy1(600.f, 725.f, 500.f, 750.f, "enemy2.png", 0.75f, 50, 15),
+      enemy2(600.f, 725.f, 900.f, 1150.f, "enemy2.png", 0.75f, 50, 15),
+      enemy3(600.f, 725.f, 2900.f, 3200.f, "Deephunter.png", 0.75f, 70, 15),
+      enemy4(240.f, 365.f, 2700.f, 3000.f, "shadowcreeper.png", 0.75f, 100, 20),
+      enemy5(100.f, 225.f, 1700.f, 2200.f, "shadowcreeper.png", 0.75f, 100, 20),
+      enemy6(20.f, 125.f, 600.f, 1000.f, "mosscharger.png", 0.75f, 300, 40)
 
 {
     state = 0;
@@ -456,6 +462,8 @@ Game::Game()
     enemy2.setPlayer(&player);
     enemy3.setPlayer(&player);
     enemy4.setPlayer(&player);
+    enemy5.setPlayer(&player);
+    enemy6.setPlayer(&player);
 }
 
 
@@ -520,7 +528,13 @@ void Game::update(float dt)
         Platform11.getBounds(),
         Platform12.getBounds(),
         Platform13.getBounds(),
-        Platform14.getBounds()
+        Platform14.getBounds(),
+        Platform15.getBounds(),
+        Platform16.getBounds(),
+        Platform17.getBounds(),
+        Platform18.getBounds(),
+        Platform19.getBounds(),
+        Platform20.getBounds()
     };
     
     player.update(dt, platformBounds);
@@ -529,16 +543,18 @@ void Game::update(float dt)
         &enemy1, 
         &enemy2,
         &enemy3,
-        &enemy4
+        &enemy4,
+        &enemy5,
+        &enemy6
         };
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 6; i++) {
         enemies[i]->update(dt, platformBounds);
     }
     
     if (player.isAttacking && !player.attacked) {
         sf::FloatRect attackBox = player.getAttackHitbox();
-        for (int j = 0; j < 4; j++) {
+        for (int j = 0; j < 6; j++) {
             Enemy& enemy = *enemies[j];
             if (attackBox.intersects(enemy.getBounds())) {
                 // Deal damage
@@ -669,12 +685,21 @@ void Game::render()
     Platform12.draw(window);
     Platform13.draw(window);
     Platform14.draw(window);
+    Platform15.draw(window);
+    Platform16.draw(window);
+    Platform17.draw(window);
+    Platform18.draw(window);
+    Platform19.draw(window);
+    Platform20.draw(window);
+
 
     player.draw(window);
     if (!enemy1.isDead || enemy1.despawnTimer > 0) enemy1.draw(window);
     if (!enemy2.isDead || enemy2.despawnTimer > 0) enemy2.draw(window);
     if (!enemy3.isDead || enemy3.despawnTimer > 0) enemy3.draw(window);
     if (!enemy4.isDead || enemy4.despawnTimer > 0) enemy4.draw(window);
+    if (!enemy5.isDead || enemy5.despawnTimer > 0) enemy5.draw(window);
+    if (!enemy6.isDead || enemy6.despawnTimer > 0) enemy6.draw(window);
 
     window.setView(window.getDefaultView());
 

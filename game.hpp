@@ -201,10 +201,18 @@ private:
     Platform Platform12;
     Platform Platform13;
     Platform Platform14;
+    Platform Platform15;
+    Platform Platform16;
+    Platform Platform17;
+    Platform Platform18;
+    Platform Platform19;
+    Platform Platform20;
     Enemy enemy1;
     Enemy enemy2;
     Enemy enemy3;
     Enemy enemy4;
+    Enemy enemy5;
+    Enemy enemy6;
 
     HealthBar healthBar;
     SoulBar soulBar;
