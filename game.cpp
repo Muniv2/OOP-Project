@@ -415,6 +415,9 @@ Game::Game()
       enemy1(600.f, 725.f, 500.f, 700.f, "enemy2.png", 0.75f, 50, 15),
       enemy2(600.f, 725.f, 800.f, 1000.f, "enemy2.png", 0.75f, 50, 15)
 {
+    state = 0;
+    option = 0;
+    
     sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
     unsigned int width  = desktop.width  * 0.8f;
     unsigned int height = desktop.height * 0.8f;
@@ -455,10 +458,20 @@ void Game::processEvents()
     while (window.pollEvent(event)) {
         if (event.type == sf::Event::Closed)
             window.close();
-    
-
-        if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::J) {
-            player.meleeAttack();
+        if (state == 0) {
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter && option == 0) {
+                state = 1;
+                return;
+            } else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter && option == 1) {
+                window.close();
+            }
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::M) {
+                option = (option + 1) % 2;
+            }
+        } else if (state == 1) {
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::J) {
+                player.meleeAttack();
+            }
         }
 
     }
@@ -467,6 +480,7 @@ void Game::processEvents()
 
 void Game::update(float dt)
 {
+    if (state == 0) return;
     sf::FloatRect platformBounds[] = {
         platform1.getBounds(),
         platform2.getBounds(),
@@ -546,6 +560,53 @@ void Game::update(float dt)
 void Game::render()
 {
     window.clear();
+
+    if (state == 0) {
+        window.setView(window.getDefaultView());
+
+        sf::Font font;
+        font.loadFromFile("arial.ttf");
+
+        sf::Text title("HOLLOW KNIGHT CLONE", font, 64);
+        sf::Text option1("Start Game", font, 32);
+        sf::Text option2("Quit Game", font, 32);
+
+        title.setFillColor(sf::Color::White);
+        option1.setFillColor(sf::Color(200,200,200));
+        option2.setFillColor(sf::Color(200,200,200));
+
+        title.setPosition(350, 200);
+        option1.setPosition(700, 400);
+        option2.setPosition(705, 470);
+
+        window.draw(title);
+        window.draw(option1);
+        window.draw(option2);
+
+        if (option == 0) {
+            sf::FloatRect bounds = option1.getGlobalBounds();
+            sf::RectangleShape box;
+            box.setSize(sf::Vector2f(bounds.width + 20, bounds.height + 10));
+            box.setPosition(bounds.left - 10, bounds.top - 5);
+            box.setFillColor(sf::Color::Transparent);
+            box.setOutlineColor(sf::Color::White);
+            box.setOutlineThickness(2);
+            window.draw(box);
+        } else if (option == 1) {
+            sf::FloatRect bounds = option2.getGlobalBounds();
+            sf::RectangleShape box;
+            box.setSize(sf::Vector2f(bounds.width + 20, bounds.height + 10));
+            box.setPosition(bounds.left - 10, bounds.top - 5);
+            box.setFillColor(sf::Color::Transparent);
+            box.setOutlineColor(sf::Color::White);
+            box.setOutlineThickness(2);
+            window.draw(box);
+        }
+
+        window.display();
+        return;
+    }
+    
     window.setView(camera);
 
     background.draw(window);

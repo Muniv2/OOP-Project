@@ -178,6 +178,9 @@ private:
     sf::Clock clock;
     sf::View camera;
 
+    int state;
+    int option;
+
     Background background;
     Player player;
     Platform platform1;
