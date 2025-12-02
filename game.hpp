@@ -133,6 +133,7 @@ public:
     float distanceToPlayer(Player& player);
     void setPlayer(Player* player);
     void setColor(const sf::Color& color);
+    void reset(float startX, float startY , int hlt);
 
 
 
@@ -155,19 +156,15 @@ private:
 
 class Platform {
 public:
-    Platform() {};
+    Platform();
     Platform(const std::string& filename, float x, float y);
 
-    virtual ~Platform() = default;
+    ~Platform() = default;
 
-    virtual void draw(sf::RenderWindow& window);
+    void draw(sf::RenderWindow& window);
 
-    virtual sf::FloatRect getBounds() const;
+    sf::FloatRect getBounds() const;
 
-    void setPosition(float x, float y);
-    sf::Vector2f getPosition() const;
-
-    void setTexture(const sf::Texture& tex);
 
 protected:
     sf::Texture texture;
@@ -227,6 +224,8 @@ private:
     void processEvents();
     void update(float dt);
     void render();
+
+    void resetGame();
 };
 
 #endif

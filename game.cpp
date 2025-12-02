@@ -1,6 +1,6 @@
 #include "game.hpp"
 
-
+// Constructor of the abstract base class
 UIElement::UIElement() {
     if (!font.loadFromFile("arial.ttf")) {
         std::cout << "Note: Using default font (arial.ttf not found)" << std::endl;
@@ -10,9 +10,11 @@ UIElement::UIElement() {
     text.setFillColor(sf::Color::White);
 }
 
+// The HealthBar class, which draws and updates the health bar based on the health
+// of the player
 HealthBar::HealthBar(int* health, int maxHP) : playerHealth(health), maxHealth(maxHP) {
-    fullHealthTexture.loadFromFile("fullhealth.png");
-    lowHealthTexture.loadFromFile("nohealth.png");
+    fullHealthTexture.loadFromFile("PNGS/fullhealth.png");
+    lowHealthTexture.loadFromFile("PNGS/nohealth.png");
 }
 
 void HealthBar::draw(sf::RenderWindow& window) {
@@ -40,8 +42,10 @@ void HealthBar::takeDamage(int damage) {
     }
 }
 
+// The SourlBar class, which draws and updates the soul bar based on the health
+// of the player
 SoulBar::SoulBar(int* soul) : playerSoul(soul) {
-    texture.loadFromFile("soulorb.png");
+    texture.loadFromFile("PNGS/soulorb.png");
     for (int i = 0 ; i < 4 ; i++) {
         sprites[i].setTexture(texture);
     }
@@ -60,6 +64,7 @@ void SoulBar::update() {
     text.setString(soulText);
 }
 
+// The Background class, which creates a background for the window
 Background::Background(const std::string& filename)
 {
     if (!texture.loadFromFile(filename)) {
@@ -73,6 +78,7 @@ void Background::draw(sf::RenderWindow& window)
     window.draw(sprite);
 }
 
+// The abstract character class
 Character::Character() : vx(0), vy(0), gravity(800.f), health(100), 
 facingRight(true), onGround(false) {}
 
@@ -88,12 +94,13 @@ bool Character::isFacingRight() const {
     return facingRight;
 }
 
+// The Player class, derived from Character, which is controlled by the user
 Player::Player() : maxHealth(100), moveSpeed(300.f), jumpForce(-550.f),
     soul(0), maxSoul(20), isAttacking(false), attackDuration(0.f), 
     attackCooldown(0.f), attacked(true), damage(25)
 {
     sf::Image fullImage;
-    if (fullImage.loadFromFile("player.png")) {
+    if (fullImage.loadFromFile("PNGS/player.png")) {
         sf::IntRect frameRect(4025, 3965, 71, 130);
         sf::Image frameImage;
         frameImage.create(frameRect.width, frameRect.height, sf::Color::Transparent);
@@ -304,6 +311,16 @@ Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, stri
 //     return std::abs(player.getPosition().x - sprite.getPosition().x);
 // }
 
+void Enemy::reset(float startX, float startY, int hlt) {
+    isDead = false;
+    despawnTimer = 1.f;  // Reset to initial value
+    sprite.setPosition(startX, startY);
+    health = hlt;  // Actually set the health!
+    attackTimer = 0.f;  // Reset attack timer
+    colorTimer = 0.f;   // Reset color timer
+    setColor(sf::Color::White);  // Reset color
+}
+
 float Enemy::distanceToPlayer(Player& player) {
     sf::Vector2f p = player.getPosition();
     sf::Vector2f e = sprite.getPosition();
@@ -390,7 +407,7 @@ void Enemy::draw(sf::RenderWindow& window) {
 Platform::Platform(const std::string& filename, float x, float y)
 {
     sf::Image fullImage;
-    if (!fullImage.loadFromFile("platform.png"))
+    if (!fullImage.loadFromFile("PNGS/platform.png"))
         std::cout << "Failed to load platform sprite!\n";
 
     sf::IntRect frameRect(0, 330, 310, 160);
@@ -416,42 +433,42 @@ sf::FloatRect Platform::getBounds() const
 }
 
 Game::Game()
-    : background("bgimg.png"),
-      mainmenu("mainmenu.png"),
-      platform1("platform.png", -20.f, 750.f),
-      platform2("platform.png", 255.f, 750.f),
-      platform3("platform.png", 530.f, 750.f),
-      platform4("platform.png", 705.f, 750.f),
-      platform5("platform.png", 980.f, 750.f),
-      platform6("platform.png", 1255.f, 750.f),
-      platform7("platform.png", 1850.f, 750.f),
-      platform8("platform.png", 2250.f, 600.f),
-      platform9("platform.png", 2150.f, 275.f),
-      Platform10("platform.png", 2850.f, 750.f),
-      Platform11("platform.png", 3150.f, 750.f),
-      Platform12("platform.png", 2650.f, 420.f),
-      Platform13("platform.png", 2950.f, 420.f),
-      Platform14("platform.png", 3450.f, 575.f),
-      Platform15("platform.png", 1850.f, 275.f),
-      Platform16("platform.png", 1600.f, 275.f),
-      Platform17("platform.png", 1100.f, 275.f),
-      Platform18("platform.png", 850.f, 275.f),
-      Platform19("platform.png", 550.f, 275.f),
-      Platform20("platform.png", 250.f, 275.f),
+    : background("PNGS/bgimg.png"),
+      mainmenu("PNGS/mainmenu.png"),
+      platform1("PNGS/platform.png", -20.f, 750.f),
+      platform2("PNGS/platform.png", 255.f, 750.f),
+      platform3("PNGS/platform.png", 530.f, 750.f),
+      platform4("PNGS/platform.png", 705.f, 750.f),
+      platform5("PNGS/platform.png", 980.f, 750.f),
+      platform6("PNGS/platform.png", 1255.f, 750.f),
+      platform7("PNGS/platform.png", 1850.f, 750.f),
+      platform8("PNGS/platform.png", 2250.f, 600.f),
+      platform9("PNGS/platform.png", 2150.f, 275.f),
+      Platform10("PNGS/platform.png", 2850.f, 750.f),
+      Platform11("PNGS/platform.png", 3150.f, 750.f),
+      Platform12("PNGS/platform.png", 2650.f, 420.f),
+      Platform13("PNGS/platform.png", 2950.f, 420.f),
+      Platform14("PNGS/platform.png", 3450.f, 575.f),
+      Platform15("PNGS/platform.png", 1850.f, 275.f),
+      Platform16("PNGS/platform.png", 1600.f, 275.f),
+      Platform17("PNGS/platform.png", 1100.f, 275.f),
+      Platform18("PNGS/platform.png", 850.f, 275.f),
+      Platform19("PNGS/platform.png", 550.f, 275.f),
+      Platform20("PNGS/platform.png", 250.f, 275.f),
       healthBar(&player.health, player.maxHealth),
       soulBar(&player.soul),
-      enemy1(600.f, 725.f, 500.f, 750.f, "enemy2.png", 0.75f, 50, 15 , 30.f),
-      enemy2(600.f, 725.f, 900.f, 1150.f, "enemy2.png", 0.75f, 50, 15 , 30.f),
-      enemy3(600.f, 725.f, 2900.f, 3200.f, "Deephunter.png", 0.75f, 70, 15 , 30.f),
-      enemy4(240.f, 365.f, 2700.f, 3000.f, "shadowcreeper.png", 0.75f, 100, 20 , 30.f),
-      enemy5(100.f, 225.f, 1700.f, 2200.f, "shadowcreeper.png", 0.75f, 100, 20 , 30.f),
-      enemy6(20.f, 125.f, 250.f, 1200.f, "mosscharger.png", 0.75f, 300, 40 , 120.f)
+      enemy1(600.f, 725.f, 500.f, 750.f, "PNGS/enemy2.png", 0.75f, 50, 15 , 30.f),
+      enemy2(600.f, 725.f, 900.f, 1150.f, "PNGS/enemy2.png", 0.75f, 50, 15 , 30.f),
+      enemy3(600.f, 725.f, 2900.f, 3200.f, "PNGS/Deephunter.png", 0.75f, 70, 15 , 30.f),
+      enemy4(240.f, 365.f, 2700.f, 3000.f, "PNGS/shadowcreeper.png", 0.75f, 100, 20 , 30.f),
+      enemy5(100.f, 225.f, 1700.f, 2200.f, "PNGS/shadowcreeper.png", 0.75f, 100, 20 , 30.f),
+      enemy6(20.f, 125.f, 250.f, 1200.f, "PNGS/mosscharger.png", 0.75f, 300, 40 , 120.f)
 
 {
     state = 0;
     option = 0;
     sf::Image fullImage;
-    if (!fullImage.loadFromFile("title.png"))
+    if (!fullImage.loadFromFile("PNGS/title.png"))
         std::cout << "Failed to load platform sprite!\n";
 
     sf::IntRect frameRect(0, 0, 1328, 275);
@@ -503,6 +520,36 @@ void Game::run()
     }
 }
 
+void Game::resetGame()
+{
+    // Reset player
+    player.sprite.setPosition(100.f, 200.f);
+    player.health = player.maxHealth;
+    player.soul = 0;
+    player.vx = 0;
+    player.vy = 0;
+    player.onGround = false;
+    player.facingRight = true;
+    player.isAttacking = false;
+    player.attackDuration = 0.f;
+    player.attackCooldown = 0.f;
+    player.attacked = true;
+
+    // Reset enemies with correct positions and health
+    enemy1.reset(600.f, 725.f, 50);
+    enemy2.reset(900.f, 725.f, 50);    // Fixed position
+    enemy3.reset(2900.f, 725.f, 70);   // Fixed position
+    enemy4.reset(2700.f, 365.f, 100);  // Fixed position
+    enemy5.reset(1700.f, 225.f, 100);  // Fixed position
+    enemy6.reset(250.f, 125.f, 300);   // Fixed position
+
+    healthBar.update();
+    soulBar.update();
+    camera.setCenter(player.getPosition());
+
+    state = 1;  // Set to gameplay state
+}
+
 void Game::processEvents()
 {
     sf::Event event;
@@ -523,6 +570,11 @@ void Game::processEvents()
             if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::M) {
                 player.meleeAttack();
             }
+        } else if (state == 2) {
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter) {
+                resetGame();
+                state = 0;
+            }
         }
 
     }
@@ -532,6 +584,13 @@ void Game::processEvents()
 void Game::update(float dt)
 {
     if (state == 0) return;
+    if (state == 2) return;
+    if (player.health <= 0) {
+        state = 2;
+    }
+    if (enemy1.isDead && enemy2.isDead && enemy3.isDead && enemy4.isDead && enemy5.isDead && enemy6.isDead) {
+        state = 2;
+    }
     sf::FloatRect platformBounds[] = {
         platform1.getBounds(),
         platform2.getBounds(),
@@ -617,9 +676,10 @@ void Game::update(float dt)
     camera.setCenter(camPos);
 
     healthBar.update();
-    if (player.health <= 0) {
-        player.respawn();
-    }
+    // if (player.health <= 0) {
+    //     // player.respawn();
+    //     resetGame();
+    // }
 
     soulBar.update();
 }
@@ -631,14 +691,12 @@ void Game::render()
     if (state == 0) {
         window.setView(window.getDefaultView());
 
-        sf::Vector2u windowSize = window.getSize(); // already width x height
+        sf::Vector2u windowSize = window.getSize(); 
         sf::FloatRect spriteBounds = mainmenu.sprite.getLocalBounds();
 
-        // Compute scale to fit window
         float scaleX = static_cast<float>(windowSize.x) / spriteBounds.width;
         float scaleY = static_cast<float>(windowSize.y) / spriteBounds.height;
 
-        // Apply scale
         mainmenu.sprite.setScale(scaleX, scaleY);
 
         mainmenu.draw(window);
@@ -685,7 +743,29 @@ void Game::render()
         window.display();
         return;
     }
-    
+
+    if (state == 2) {
+        window.setView(window.getDefaultView());
+        window.clear();
+
+        sf::Font font;
+        font.loadFromFile("arial.ttf");
+
+        sf::Text endText("GAME OVER", font, 64);
+        endText.setFillColor(sf::Color::Red);
+        endText.setPosition(600, 200);
+
+        sf::Text info("Press ENTER to return to Main Menu", font, 32);
+        info.setFillColor(sf::Color::White);
+        info.setPosition(520, 400);
+
+        window.draw(endText);
+        window.draw(info);
+
+        window.display();
+        return;
+    }
+
     window.setView(camera);
 
     background.draw(window);
