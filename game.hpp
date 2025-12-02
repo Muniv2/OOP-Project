@@ -26,6 +26,10 @@ class HealthBar : public UIElement {
 private:
     int* playerHealth;
     int maxHealth;
+    sf::Texture fullHealthTexture;
+    sf::Texture lowHealthTexture;
+    sf::Sprite healthSprites[10];
+
 
 public:
     HealthBar(int* health, int maxHP);
@@ -38,6 +42,8 @@ public:
 class SoulBar : public UIElement {
 private:
     int* playerSoul;
+    sf::Texture texture;
+    sf::Sprite sprites[4];
 
 public:
     SoulBar(int* soul);
@@ -119,7 +125,8 @@ private:
 
 class Enemy : public Character {
 public:
-    Enemy(float startX, float startY, float leftBound, float rightBound, string filename, float scale, int healthAmount, int damageAmount);
+    Enemy(float startX, float startY, float leftBound, float rightBound, string filename, float scale, int healthAmount, int damageAmount,
+    float atr);
 
     void update(float dt, sf::FloatRect platformBounds[]) override;
     void draw(sf::RenderWindow& window) override;

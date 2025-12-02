@@ -11,16 +11,26 @@ UIElement::UIElement() {
 }
 
 HealthBar::HealthBar(int* health, int maxHP) : playerHealth(health), maxHealth(maxHP) {
-    text.setPosition(20.f, 20.f); 
+    fullHealthTexture.loadFromFile("fullhealth.png");
+    lowHealthTexture.loadFromFile("nohealth.png");
 }
 
 void HealthBar::draw(sf::RenderWindow& window) {
-    window.draw(text);
+    for (int i = 0 ; i < 10 ; i++) {
+        healthSprites[i].setScale(0.2f , 0.2f);
+        healthSprites[i].setPosition(20 + i * 75, 20);
+        window.draw(healthSprites[i]);
+    }
 }
 
 void HealthBar::update() {
-    std::string healthText = "Health: " + std::to_string(*playerHealth) + "/" + std::to_string(maxHealth);
-    text.setString(healthText);
+    for (int i = 0 ; i < 10 ; i++) {
+        if (i+1 <= *playerHealth/10) {
+            healthSprites[i].setTexture(fullHealthTexture);
+        } else {
+            healthSprites[i].setTexture(lowHealthTexture);
+        }
+    }
 }
 
 void HealthBar::takeDamage(int damage) {
@@ -31,11 +41,18 @@ void HealthBar::takeDamage(int damage) {
 }
 
 SoulBar::SoulBar(int* soul) : playerSoul(soul) {
-    text.setPosition(20.f, 50.f);
+    texture.loadFromFile("soulorb.png");
+    for (int i = 0 ; i < 4 ; i++) {
+        sprites[i].setTexture(texture);
+    }
 }
 
 void SoulBar::draw(sf::RenderWindow& window) {
-    window.draw(text);
+    for (int i = 0 ; i < (*playerSoul) / 5 ; i++) {
+        sprites[i].setScale(0.5f , 0.5f);
+        sprites[i].setPosition(20 + i * 75, 100);
+        window.draw(sprites[i]);
+    }
 }
 
 void SoulBar::update() {
@@ -72,7 +89,7 @@ bool Character::isFacingRight() const {
 }
 
 Player::Player() : maxHealth(100), moveSpeed(300.f), jumpForce(-550.f),
-    soul(0), maxSoul(100), isAttacking(false), attackDuration(0.f), 
+    soul(0), maxSoul(20), isAttacking(false), attackDuration(0.f), 
     attackCooldown(0.f), attacked(true), damage(25)
 {
     sf::Image fullImage;
@@ -244,10 +261,10 @@ void Player::gainSoul(int amount) {
 }
 
 void Player::heal() {
-    if (soul >= 10 && health != 100) { 
-        health += 20;
+    if (soul >= 5 && health != 100) { 
+        health += 10;
         if (health > 100) health = 100;
-        soul -= 10;
+        soul -= 5;
     }
 }
 
@@ -255,14 +272,15 @@ void Player::setColor(const sf::Color& color) {
     sprite.setColor(color);
 }
 
-Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, string filename, float scale, int healthAmount, int damageAmount) {
+Enemy::Enemy(float startX, float startY, float leftBound, float rightBound, string filename, float scale, int healthAmount, int damageAmount,
+    float atr) {
     texture.loadFromFile(filename);
     sprite.setTexture(texture);
 
     sprite.setPosition(startX, startY);
     sprite.setScale(scale, scale);
 
-    attackRange = 30.f;
+    attackRange = atr;
     chaseSpeed = 200.f;
     attackCooldown = 1.f; 
     attackTimer = 0.f;   
@@ -323,7 +341,7 @@ void Enemy::update(float dt, sf::FloatRect platformBounds[]) {
     float dx = playerPos.x - pos.x;
     float dy = playerPos.y + 80.f - pos.y;
     float dist = std::sqrt(dx * dx + dy * dy);
-    std::cout << dist << std::endl;
+    // std::cout << dist << std::endl;
     float vx = 0.f;
     if (dist <= attackRange) {
         vx = 0.f;
@@ -422,12 +440,12 @@ Game::Game()
       Platform20("platform.png", 250.f, 275.f),
       healthBar(&player.health, player.maxHealth),
       soulBar(&player.soul),
-      enemy1(600.f, 725.f, 500.f, 750.f, "enemy2.png", 0.75f, 50, 15),
-      enemy2(600.f, 725.f, 900.f, 1150.f, "enemy2.png", 0.75f, 50, 15),
-      enemy3(600.f, 725.f, 2900.f, 3200.f, "Deephunter.png", 0.75f, 70, 15),
-      enemy4(240.f, 365.f, 2700.f, 3000.f, "shadowcreeper.png", 0.75f, 100, 20),
-      enemy5(100.f, 225.f, 1700.f, 2200.f, "shadowcreeper.png", 0.75f, 100, 20),
-      enemy6(20.f, 125.f, 600.f, 1000.f, "mosscharger.png", 0.75f, 300, 40)
+      enemy1(600.f, 725.f, 500.f, 750.f, "enemy2.png", 0.75f, 50, 15 , 30.f),
+      enemy2(600.f, 725.f, 900.f, 1150.f, "enemy2.png", 0.75f, 50, 15 , 30.f),
+      enemy3(600.f, 725.f, 2900.f, 3200.f, "Deephunter.png", 0.75f, 70, 15 , 30.f),
+      enemy4(240.f, 365.f, 2700.f, 3000.f, "shadowcreeper.png", 0.75f, 100, 20 , 30.f),
+      enemy5(100.f, 225.f, 1700.f, 2200.f, "shadowcreeper.png", 0.75f, 100, 20 , 30.f),
+      enemy6(20.f, 125.f, 250.f, 1200.f, "mosscharger.png", 0.75f, 300, 40 , 120.f)
 
 {
     state = 0;
@@ -554,6 +572,7 @@ void Game::update(float dt)
     
     if (player.isAttacking && !player.attacked) {
         sf::FloatRect attackBox = player.getAttackHitbox();
+        // std::cout << attackBox.left << " " << attackBox.top << std::endl;
         for (int j = 0; j < 6; j++) {
             Enemy& enemy = *enemies[j];
             if (attackBox.intersects(enemy.getBounds())) {
@@ -700,6 +719,8 @@ void Game::render()
     if (!enemy4.isDead || enemy4.despawnTimer > 0) enemy4.draw(window);
     if (!enemy5.isDead || enemy5.despawnTimer > 0) enemy5.draw(window);
     if (!enemy6.isDead || enemy6.despawnTimer > 0) enemy6.draw(window);
+    // std::cout << "x: " << enemy6.sprite.getPosition().x << " ";
+    // std::cout << "y: " << enemy6.sprite.getPosition().y << std::endl;
 
     window.setView(window.getDefaultView());
 
